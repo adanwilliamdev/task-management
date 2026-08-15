@@ -46,7 +46,7 @@ const TaskForm = ({ open, onClose, task }) => {
     }
     const data = {
       ...formData,
-      dueDate: formData.dueDate ? format(formData.dueDate, "yyyy-MM-dd'T'HH:mm:ss.SSSxxx") : null,
+      dueDate: formData.dueDate ? format(formData.dueDate, "yyyy-MM-dd'T'HH:mm:ss.SSS") : null,
     };
     const result = task ? await updateTask(task.id, data) : await createTask(data);
     if (result.success) onClose();
@@ -56,7 +56,7 @@ const TaskForm = ({ open, onClose, task }) => {
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
       <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
         <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pb: 1 }}>
-          <Typography variant="h5">{task ? "Editar tarefa" : "Nova tarefa"}</Typography>
+          <Typography variant="h5" component="span">{task ? "Editar tarefa" : "Nova tarefa"}</Typography>
           <IconButton onClick={onClose} size="small"><CloseIcon /></IconButton>
         </DialogTitle>
         <Divider />
