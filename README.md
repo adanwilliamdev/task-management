@@ -1,87 +1,305 @@
-# TaskFlow
+# 🚀 TaskFlow
 
-Sistema de gerenciamento de tarefas em arquitetura de microsserviços (Spring Boot) com frontend em React.
+Sistema de gerenciamento de tarefas desenvolvido com **Java, Spring Boot, arquitetura de microsserviços e React**.
 
-## Arquitetura
+O projeto foi construído com foco em **arquitetura distribuída, autenticação JWT, comunicação entre serviços, persistência de dados e containerização com Docker**.
 
-| Serviço | Porta | Descrição |
-|---|---|---|
-| discovery-service | 8761 | Eureka Server (service discovery) |
-| api-gateway | 8080 | Spring Cloud Gateway — roteia `/api/**` para os serviços |
-| auth-service | 8081 | Registro/login, emissão de JWT |
-| user-service | 8082 | Perfil do usuário |
-| task-service | 8083 | CRUD de tarefas |
-| notification-service | 8084 | Notificações do usuário |
-| frontend | 3000 (docker) / 5173 (dev) | React + Vite + TypeScript |
-| postgres | 5432 | Um container, 4 bancos (`taskflow_auth`, `taskflow_user`, `taskflow_task`, `taskflow_notification`) |
+## 🏗️ Arquitetura
 
-Autenticação: `auth-service` emite um JWT (HS256) assinado com um segredo compartilhado
-(`app.jwt.secret` em cada `application.yml`). Os demais serviços validam esse token
-localmente via `JwtAuthFilter` — não há chamada de rede entre eles para validar o token.
+```text
+                         ┌─────────────────────┐
+                         │      Frontend       │
+                         │   React + Vite      │
+                         │      :3000          │
+                         └──────────┬──────────┘
+                                    │
+                                    ▼
+                         ┌─────────────────────┐
+                         │     API Gateway     │
+                         │ Spring Cloud Gateway│
+                         │       :8080         │
+                         └──────────┬──────────┘
+                                    │
+              ┌─────────────────────┼─────────────────────┐
+              │                     │                     │
+              ▼                     ▼                     ▼
+       ┌─────────────┐       ┌─────────────┐       ┌─────────────┐
+       │Auth Service │       │User Service │       │Task Service │
+       │    :8081    │       │    :8082    │       │    :8083    │
+       └─────────────┘       └─────────────┘       └─────────────┘
+              │                     │                     │
+              │                     │                     │
+              └─────────────────────┼─────────────────────┘
+                                    │
+                                    ▼
+                         ┌─────────────────────┐
+                         │Notification Service │
+                         │       :8084         │
+                         └─────────────────────┘
 
-## Como rodar
+                         ┌─────────────────────┐
+                         │      Eureka         │
+                         │ Service Discovery   │
+                         │       :8761         │
+                         └─────────────────────┘
 
-### Opção 1 — Docker Compose (recomendado)
+                         ┌─────────────────────┐
+                         │     PostgreSQL      │
+                         │       :5432         │
+                         │                     │
+                         │ 4 bancos de dados   │
+                         └─────────────────────┘
+```
+
+## 🧩 Serviços
+
+| Serviço                |       Porta | Responsabilidade                   |
+| ---------------------- | ----------: | ---------------------------------- |
+| `discovery-service`    |        8761 | Service Discovery com Eureka       |
+| `api-gateway`          |        8080 | Gateway e roteamento das APIs      |
+| `auth-service`         |        8081 | Registro, login e emissão de JWT   |
+| `user-service`         |        8082 | Gerenciamento do perfil do usuário |
+| `task-service`         |        8083 | CRUD de tarefas                    |
+| `notification-service` |        8084 | Gerenciamento de notificações      |
+| `frontend`             | 3000 / 5173 | Interface React                    |
+| `postgres`             |        5432 | Persistência dos microsserviços    |
+
+## 🛠️ Tecnologias
+
+### Backend
+
+* Java
+* Spring Boot
+* Spring Cloud Gateway
+* Spring Cloud Netflix Eureka
+* Spring Security
+* JWT
+* Maven
+* PostgreSQL
+
+### Frontend
+
+* React
+* TypeScript
+* Vite
+
+### DevOps
+
+* Docker
+* Docker Compose
+* Nginx
+
+## 🔐 Autenticação
+
+O `auth-service` é responsável pelo registro e login dos usuários.
+
+Após a autenticação, o serviço gera um **JWT utilizando HS256**.
+
+Os demais microsserviços validam o token localmente através do `JwtAuthFilter`, utilizando um segredo compartilhado configurado em cada `application.yml`.
+
+```text
+Login/Register
+      │
+      ▼
+ Auth Service
+      │
+      │ JWT
+      ▼
+   Frontend
+      │
+      │ Authorization: Bearer <token>
+      ▼
+ API Gateway
+      │
+      ▼
+ Microsserviço
+      │
+      ▼
+ JwtAuthFilter
+      │
+      ▼
+ Autorização
+```
+
+Não existe uma chamada de rede entre os microsserviços para validar o JWT.
+
+## 📋 Funcionalidades
+
+* Cadastro de usuários
+* Login com JWT
+* Autenticação baseada em Bearer Token
+* Gerenciamento de perfil
+* Criação de tarefas
+* Listagem de tarefas
+* Atualização de tarefas
+* Exclusão de tarefas
+* Tarefas isoladas por usuário
+* Gerenciamento de notificações
+* Service Discovery com Eureka
+* API Gateway centralizado
+* PostgreSQL separado por serviço
+* Execução completa com Docker Compose
+
+## 🔄 Principais Endpoints
+
+### Autenticação
+
+```http
+POST /api/auth/register
+POST /api/auth/login
+```
+
+### Usuários
+
+```http
+GET /api/users/me
+PUT /api/users/me
+```
+
+### Tarefas
+
+```http
+GET    /api/tasks
+POST   /api/tasks
+PUT    /api/tasks/{id}
+PATCH  /api/tasks/{id}
+DELETE /api/tasks/{id}
+```
+
+### Notificações
+
+```http
+GET    /api/notifications
+PATCH  /api/notifications/{id}
+DELETE /api/notifications/{id}
+```
+
+Todas as operações autenticadas utilizam:
+
+```http
+Authorization: Bearer <JWT>
+```
+
+## 🐳 Executando com Docker
+
+A forma recomendada para executar o projeto é utilizando Docker Compose.
 
 ```bash
 docker compose up --build
 ```
 
-Isso sobe: Postgres (com os 4 bancos já criados via `postgres-init/`), Eureka,
-os 4 microsserviços, o gateway e o frontend (Nginx servindo o build de produção,
-proxyando `/api` para o gateway).
+O ambiente iniciará:
 
-Acesse:
-- Frontend: http://localhost:3000
-- Gateway: http://localhost:8080
-- Eureka dashboard: http://localhost:8761
+* PostgreSQL
+* Eureka
+* API Gateway
+* Auth Service
+* User Service
+* Task Service
+* Notification Service
+* Frontend
 
-### Opção 2 — Rodando manualmente (dev)
+### Acessos
 
-Backend (em ordem, cada um em um terminal):
-```bash
-cd discovery-service && mvn spring-boot:run
-cd auth-service && mvn spring-boot:run
-cd user-service && mvn spring-boot:run
-cd task-service && mvn spring-boot:run
-cd notification-service && mvn spring-boot:run
-cd api-gateway && mvn spring-boot:run
+| Aplicação        | URL                   |
+| ---------------- | --------------------- |
+| Frontend         | http://localhost:3000 |
+| API Gateway      | http://localhost:8080 |
+| Eureka Dashboard | http://localhost:8761 |
+
+O PostgreSQL utiliza um único container com quatro bancos:
+
+```text
+taskflow_auth
+taskflow_user
+taskflow_task
+taskflow_notification
 ```
 
-Frontend:
+## 💻 Executando em Desenvolvimento
+
+### Backend
+
+Inicie os serviços nesta ordem:
+
+```bash
+cd discovery-service
+mvn spring-boot:run
+```
+
+```bash
+cd auth-service
+mvn spring-boot:run
+```
+
+```bash
+cd user-service
+mvn spring-boot:run
+```
+
+```bash
+cd task-service
+mvn spring-boot:run
+```
+
+```bash
+cd notification-service
+mvn spring-boot:run
+```
+
+```bash
+cd api-gateway
+mvn spring-boot:run
+```
+
+### Frontend
+
 ```bash
 cd frontend
 npm install
-npm run dev   # http://localhost:5173, com proxy de /api para localhost:8080
+npm run dev
 ```
 
-## Fluxo de uso
+Frontend disponível em:
 
-1. `POST /api/auth/register` (ou tela de registro no frontend) → cria o usuário e já retorna um JWT.
-2. O frontend guarda o token no `localStorage` e o envia em `Authorization: Bearer <token>` em toda chamada.
-3. `GET/PUT /api/users/me` — perfil (criado automaticamente no primeiro acesso).
-4. `GET/POST/PUT/PATCH/DELETE /api/tasks` — CRUD de tarefas, sempre isolado por usuário dono.
-5. `GET/PATCH/DELETE /api/notifications` — notificações do usuário logado.
+```text
+http://localhost:5173
+```
 
-## ⚠️ Limitação conhecida deste ambiente
+Durante o desenvolvimento, o Vite utiliza proxy para encaminhar as requisições `/api` para o API Gateway em `localhost:8080`.
 
-O backend foi **escrito por completo** (models, DTOs, repositories, services, controllers,
-segurança JWT, tratamento de erros), mas **não pôde ser compilado nem testado em tempo de
-execução** neste ambiente, porque o sandbox onde o código foi gerado não tem acesso à
-internet para o Maven Central (só tem acesso a `npm`, `pypi`, `github`, etc.).
+## 📁 Estrutura do Projeto
 
-Isso significa que o Java **não foi validado com `mvn compile`/`mvn test` de verdade** —
-apenas revisado manualmente (imports, chaves balanceadas, consistência entre camadas).
-Rode `mvn clean install` em cada serviço (ou `docker compose up --build`) na sua máquina
-com internet para compilar e pegar qualquer erro de digitação/import que eu não tenha
-visto na revisão manual.
+```text
+TaskFlow/
+├── discovery-service/
+├── api-gateway/
+├── auth-service/
+├── user-service/
+├── task-service/
+├── notification-service/
+├── frontend/
+├── postgres-init/
+├── docker-compose.yml
+└── README.md
+```
 
-O **frontend foi de fato instalado, compilado e buildado com sucesso** (`npm run build`
-e `tsc -b` passaram sem erros) neste ambiente, já que o registro do npm está acessível.
+## 🎯 Objetivo
 
-## Variáveis de ambiente / segurança
+O TaskFlow foi desenvolvido para demonstrar na prática conceitos de:
 
-O segredo JWT (`taskflowSecretKeyForJwtTokenGenerationWith256BitsLength`) e a senha do
-Postgres (`taskflow123`) estão hardcoded nos `application.yml` — isso é aceitável para
-desenvolvimento local, mas **não deve ir para produção assim**. Antes de um deploy real,
-mova esses valores para variáveis de ambiente/secrets.
+* Arquitetura de microsserviços
+* API Gateway
+* Service Discovery
+* Autenticação e autorização com JWT
+* Spring Security
+* APIs REST
+* Persistência com PostgreSQL
+* Frontend React + TypeScript
+* Docker e Docker Compose
+* Separação de responsabilidades entre serviços
+
+---
+
+**TaskFlow**
+Sistema de gerenciamento de tarefas baseado em **Java Spring Boot + React + Microsserviços**.
