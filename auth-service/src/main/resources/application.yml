@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: auth-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/taskflow_auth
+    username: taskflow
+    password: taskflow123
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    show-sql: true
+server:
+  port: 8081
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+app:
+  jwt:
+    secret: "taskflowSecretKeyForJwtTokenGenerationWith256BitsLength"
+    expiration: 86400000
+logging:
+  level:
+    com.taskflow: DEBUG

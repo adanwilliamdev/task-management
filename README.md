@@ -1,125 +1,87 @@
-# Rumo — Gestão de Tarefas
+# TaskFlow
 
-Aplicação full-stack de gestão de tarefas em formato kanban, com autenticação própria e quadro de arrastar e soltar. Backend em **Spring Boot**, frontend em **React + Material UI**.
-
-## Visão geral
-
-Cada usuário se cadastra, faz login e passa a ter seu próprio quadro com três colunas — **A fazer**, **Em andamento** e **Concluído**. As tarefas podem ser criadas, editadas, movidas entre colunas (arrastando ou editando o status) e excluídas. Todo o acesso é protegido por token: um usuário só enxerga e manipula as próprias tarefas.
-
-## Funcionalidades
-
-- Cadastro e login com autenticação via JWT (access token + refresh token)
-- Quadro kanban com drag-and-drop entre colunas
-- Criação, edição, exclusão e priorização de tarefas (baixa / média / alta)
-- Data de vencimento com aviso visual para tarefas atrasadas
-- Busca por título/descrição e barra de progresso de conclusão
-- Renovação automática do token de acesso quando expira, sem derrubar a sessão
-- Interface responsiva, com estados de carregamento e vazio tratados
-
-## Stack técnica
-
-| Camada | Tecnologias |
-|---|---|
-| Backend | Java 17, Spring Boot 3, Spring Security, Spring Data JPA, PostgreSQL, JWT (jjwt), Lombok |
-| Frontend | React 18, Material UI 5, React Router, Axios, @hello-pangea/dnd, react-hot-toast, date-fns |
+Sistema de gerenciamento de tarefas em arquitetura de microsserviços (Spring Boot) com frontend em React.
 
 ## Arquitetura
 
-```
-task-management/
-├── backend/                 API REST (Spring Boot)
-│   └── src/main/java/com/taskmanagement/
-│       ├── controller/      Endpoints REST (Auth, Task)
-│       ├── service/         Regras de negócio
-│       ├── repository/      Acesso a dados (Spring Data JPA)
-│       ├── model/           Entidades (User, Task)
-│       ├── dto/              Objetos de requisição/resposta
-│       ├── security/        JWT, filtro de autenticação, UserDetails
-│       ├── config/          Configuração de segurança e CORS
-│       └── exception/       Tratamento centralizado de erros
-│
-└── frontend/                 SPA (React)
-    └── src/
-        ├── components/auth/   Login, cadastro, rota privada
-        ├── components/tasks/  Quadro, cartão de tarefa, formulário
-        ├── contexts/          Estado global de autenticação e tarefas
-        └── services/          Cliente HTTP (Axios) com interceptors
-```
+| Serviço | Porta | Descrição |
+|---|---|---|
+| discovery-service | 8761 | Eureka Server (service discovery) |
+| api-gateway | 8080 | Spring Cloud Gateway — roteia `/api/**` para os serviços |
+| auth-service | 8081 | Registro/login, emissão de JWT |
+| user-service | 8082 | Perfil do usuário |
+| task-service | 8083 | CRUD de tarefas |
+| notification-service | 8084 | Notificações do usuário |
+| frontend | 3000 (docker) / 5173 (dev) | React + Vite + TypeScript |
+| postgres | 5432 | Um container, 4 bancos (`taskflow_auth`, `taskflow_user`, `taskflow_task`, `taskflow_notification`) |
 
-O frontend nunca acessa o banco diretamente: toda a comunicação passa pela API REST do backend, autenticada via header `Authorization: Bearer <token>`.
+Autenticação: `auth-service` emite um JWT (HS256) assinado com um segredo compartilhado
+(`app.jwt.secret` em cada `application.yml`). Os demais serviços validam esse token
+localmente via `JwtAuthFilter` — não há chamada de rede entre eles para validar o token.
 
-## Como executar localmente
+## Como rodar
 
-### Pré-requisitos
-
-- Java 17+ e Maven
-- Node.js 18+ e npm
-- PostgreSQL rodando localmente (ou acessível via URL)
-
-### 1. Banco de dados
-
-Crie um banco chamado `taskdb` (ou ajuste as variáveis de ambiente abaixo). As tabelas são criadas automaticamente na primeira execução (`ddl-auto: update`).
-
-### 2. Backend
+### Opção 1 — Docker Compose (recomendado)
 
 ```bash
-cd backend
-mvn spring-boot:run
+docker compose up --build
 ```
 
-Variáveis de ambiente disponíveis (todas opcionais, com valores padrão para desenvolvimento):
+Isso sobe: Postgres (com os 4 bancos já criados via `postgres-init/`), Eureka,
+os 4 microsserviços, o gateway e o frontend (Nginx servindo o build de produção,
+proxyando `/api` para o gateway).
 
-| Variável | Padrão | Descrição |
-|---|---|---|
-| `DB_URL` | `jdbc:postgresql://localhost:5432/taskdb` | URL de conexão com o banco |
-| `DB_USERNAME` | `postgres` | Usuário do banco |
-| `DB_PASSWORD` | `postgres` | Senha do banco |
-| `JWT_SECRET` | valor de desenvolvimento embutido | Chave usada para assinar os tokens |
-| `JWT_EXPIRATION` | `86400000` (24h) | Validade do access token, em ms |
-| `JWT_REFRESH_EXPIRATION` | `604800000` (7 dias) | Validade do refresh token, em ms |
-| `FRONTEND_URL` | `http://localhost:3000` | Origem liberada no CORS |
+Acesse:
+- Frontend: http://localhost:3000
+- Gateway: http://localhost:8080
+- Eureka dashboard: http://localhost:8761
 
-A API sobe em `http://localhost:8080`.
+### Opção 2 — Rodando manualmente (dev)
 
-> Em produção, defina sempre `JWT_SECRET` com um valor próprio e mantenha-o fora do controle de versão.
+Backend (em ordem, cada um em um terminal):
+```bash
+cd discovery-service && mvn spring-boot:run
+cd auth-service && mvn spring-boot:run
+cd user-service && mvn spring-boot:run
+cd task-service && mvn spring-boot:run
+cd notification-service && mvn spring-boot:run
+cd api-gateway && mvn spring-boot:run
+```
 
-### 3. Frontend
-
+Frontend:
 ```bash
 cd frontend
 npm install
-npm start
+npm run dev   # http://localhost:5173, com proxy de /api para localhost:8080
 ```
 
-A aplicação sobe em `http://localhost:3000` e já aponta para a API local por padrão (configurável em `.env`, variável `REACT_APP_API_URL`).
+## Fluxo de uso
 
-## Principais endpoints da API
+1. `POST /api/auth/register` (ou tela de registro no frontend) → cria o usuário e já retorna um JWT.
+2. O frontend guarda o token no `localStorage` e o envia em `Authorization: Bearer <token>` em toda chamada.
+3. `GET/PUT /api/users/me` — perfil (criado automaticamente no primeiro acesso).
+4. `GET/POST/PUT/PATCH/DELETE /api/tasks` — CRUD de tarefas, sempre isolado por usuário dono.
+5. `GET/PATCH/DELETE /api/notifications` — notificações do usuário logado.
 
-| Método | Rota | Descrição | Autenticado |
-|---|---|---|---|
-| POST | `/api/auth/register` | Cria uma conta | Não |
-| POST | `/api/auth/login` | Autentica e retorna os tokens | Não |
-| POST | `/api/auth/refresh` | Renova o access token | Não |
-| GET | `/api/tasks` | Lista as tarefas do usuário logado | Sim |
-| GET | `/api/tasks/filter` | Lista tarefas filtrando por status/prioridade/vencimento | Sim |
-| GET | `/api/tasks/{id}` | Detalha uma tarefa | Sim |
-| POST | `/api/tasks` | Cria uma tarefa | Sim |
-| PUT | `/api/tasks/{id}` | Atualiza uma tarefa | Sim |
-| PATCH | `/api/tasks/{id}/status` | Atualiza apenas o status | Sim |
-| DELETE | `/api/tasks/{id}` | Remove uma tarefa | Sim |
+## ⚠️ Limitação conhecida deste ambiente
 
-Todas as rotas autenticadas exigem o header `Authorization: Bearer <accessToken>`. Cada usuário só consegue ler e alterar suas próprias tarefas — a checagem de propriedade é feita no backend.
+O backend foi **escrito por completo** (models, DTOs, repositories, services, controllers,
+segurança JWT, tratamento de erros), mas **não pôde ser compilado nem testado em tempo de
+execução** neste ambiente, porque o sandbox onde o código foi gerado não tem acesso à
+internet para o Maven Central (só tem acesso a `npm`, `pypi`, `github`, etc.).
 
-## Segurança
+Isso significa que o Java **não foi validado com `mvn compile`/`mvn test` de verdade** —
+apenas revisado manualmente (imports, chaves balanceadas, consistência entre camadas).
+Rode `mvn clean install` em cada serviço (ou `docker compose up --build`) na sua máquina
+com internet para compilar e pegar qualquer erro de digitação/import que eu não tenha
+visto na revisão manual.
 
-- Senhas armazenadas com hash BCrypt, nunca em texto plano
-- Sessão stateless: nenhuma informação de autenticação fica guardada no servidor entre requisições
-- CORS restrito à origem configurada em `FRONTEND_URL`
-- Validação de entrada em cadastro e criação de tarefas (Bean Validation)
+O **frontend foi de fato instalado, compilado e buildado com sucesso** (`npm run build`
+e `tsc -b` passaram sem erros) neste ambiente, já que o registro do npm está acessível.
 
-## Possíveis evoluções
+## Variáveis de ambiente / segurança
 
-- Compartilhamento de tarefas entre usuários ou times
-- Notificações de vencimento próximo
-- Testes automatizados (unitários e de integração)
-- Deploy containerizado (Docker Compose com backend + frontend + banco)
+O segredo JWT (`taskflowSecretKeyForJwtTokenGenerationWith256BitsLength`) e a senha do
+Postgres (`taskflow123`) estão hardcoded nos `application.yml` — isso é aceitável para
+desenvolvimento local, mas **não deve ir para produção assim**. Antes de um deploy real,
+mova esses valores para variáveis de ambiente/secrets.

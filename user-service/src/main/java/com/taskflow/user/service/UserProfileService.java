@@ -1,0 +1,68 @@
+package com.taskflow.user.service;
+
+import com.taskflow.user.dto.UpdateProfileRequest;
+import com.taskflow.user.dto.UserProfileResponse;
+import com.taskflow.user.exception.ResourceNotFoundException;
+import com.taskflow.user.model.UserProfile;
+import com.taskflow.user.repository.UserProfileRepository;
+import com.taskflow.user.security.AuthenticatedUser;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class UserProfileService {
+
+    private final UserProfileRepository repository;
+
+    @Transactional
+    public UserProfileResponse getOrCreateProfile(AuthenticatedUser user) {
+        UserProfile profile = repository.findByUserId(user.userId())
+                .orElseGet(() -> repository.save(UserProfile.builder()
+                        .userId(user.userId())
+                        .username(user.username())
+                        .build()));
+        return toResponse(profile);
+    }
+
+    @Transactional
+    public UserProfileResponse updateProfile(AuthenticatedUser user, UpdateProfileRequest request) {
+        UserProfile profile = repository.findByUserId(user.userId())
+                .orElseGet(() -> UserProfile.builder()
+                        .userId(user.userId())
+                        .username(user.username())
+                        .build());
+
+        if (request.getFullName() != null) profile.setFullName(request.getFullName());
+        if (request.getBio() != null) profile.setBio(request.getBio());
+        if (request.getPhone() != null) profile.setPhone(request.getPhone());
+
+        return toResponse(repository.save(profile));
+    }
+
+    public UserProfileResponse getByUserId(Long userId) {
+        UserProfile profile = repository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Perfil não encontrado para o usuário " + userId));
+        return toResponse(profile);
+    }
+
+    public List<UserProfileResponse> getAll() {
+        return repository.findAll().stream().map(this::toResponse).toList();
+    }
+
+    private UserProfileResponse toResponse(UserProfile p) {
+        return UserProfileResponse.builder()
+                .id(p.getId())
+                .userId(p.getUserId())
+                .username(p.getUsername())
+                .fullName(p.getFullName())
+                .bio(p.getBio())
+                .phone(p.getPhone())
+                .createdAt(p.getCreatedAt())
+                .updatedAt(p.getUpdatedAt())
+                .build();
+    }
+}
