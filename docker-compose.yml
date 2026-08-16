@@ -13,6 +13,11 @@ services:
       - ./postgres-init:/docker-entrypoint-initdb.d
     networks:
       - taskflow-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   discovery-service:
     build: ./discovery-service
@@ -26,8 +31,10 @@ services:
     build: ./auth-service
     container_name: auth-service
     depends_on:
-      - postgres
-      - discovery-service
+      postgres:
+        condition: service_healthy
+      discovery-service:
+        condition: service_started
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka/
@@ -40,8 +47,10 @@ services:
     build: ./user-service
     container_name: user-service
     depends_on:
-      - postgres
-      - discovery-service
+      postgres:
+        condition: service_healthy
+      discovery-service:
+        condition: service_started
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka/
@@ -54,8 +63,10 @@ services:
     build: ./task-service
     container_name: task-service
     depends_on:
-      - postgres
-      - discovery-service
+      postgres:
+        condition: service_healthy
+      discovery-service:
+        condition: service_started
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka/
@@ -68,8 +79,10 @@ services:
     build: ./notification-service
     container_name: notification-service
     depends_on:
-      - postgres
-      - discovery-service
+      postgres:
+        condition: service_healthy
+      discovery-service:
+        condition: service_started
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka/

@@ -2,7 +2,7 @@ spring:
   application:
     name: task-service
   datasource:
-    url: jdbc:postgresql://localhost:5432/taskflow_task
+    url: jdbc:postgresql://postgres:5432/taskflow_task
     username: taskflow
     password: taskflow123
     driver-class-name: org.postgresql.Driver
