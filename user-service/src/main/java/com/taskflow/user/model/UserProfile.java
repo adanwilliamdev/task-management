@@ -27,9 +27,6 @@ public class UserProfile {
     private String username;
 
     @Column(length = 120)
-    private String email;
-
-    @Column(length = 120)
     private String fullName;
 
     @Column(length = 500)

@@ -42,7 +42,6 @@ export interface UserProfile {
   id: number;
   userId: number;
   username: string;
-  email?: string;
   fullName?: string;
   bio?: string;
   phone?: string;

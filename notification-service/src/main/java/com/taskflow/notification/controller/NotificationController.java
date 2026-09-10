@@ -22,8 +22,9 @@ public class NotificationController {
     private final NotificationService service;
 
     @PostMapping
-    public ResponseEntity<NotificationResponse> create(@Valid @RequestBody NotificationRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.create(request));
+    public ResponseEntity<NotificationResponse> create(@AuthenticationPrincipal AuthenticatedUser user,
+                                                         @Valid @RequestBody NotificationRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.create(user, request));
     }
 
     @GetMapping

@@ -21,9 +21,9 @@ public class NotificationService {
     private final NotificationRepository repository;
 
     @Transactional
-    public NotificationResponse create(NotificationRequest request) {
+    public NotificationResponse create(AuthenticatedUser user, NotificationRequest request) {
         Notification notification = Notification.builder()
-                .userId(request.getUserId())
+                .userId(user.userId())
                 .title(request.getTitle())
                 .message(request.getMessage())
                 .type(request.getType() != null ? request.getType() : NotificationType.INFO)

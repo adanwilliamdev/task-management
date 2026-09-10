@@ -9,8 +9,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
@@ -27,15 +25,5 @@ public class UserProfileController {
     public UserProfileResponse updateMe(@AuthenticationPrincipal AuthenticatedUser user,
                                          @Valid @RequestBody UpdateProfileRequest request) {
         return service.updateProfile(user, request);
-    }
-
-    @GetMapping("/{userId}")
-    public UserProfileResponse getByUserId(@PathVariable Long userId) {
-        return service.getByUserId(userId);
-    }
-
-    @GetMapping
-    public List<UserProfileResponse> getAll() {
-        return service.getAll();
     }
 }
