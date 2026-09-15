@@ -24,39 +24,48 @@ export function Layout({ children }: { children: ReactNode }) {
 
   const navItems = [
     { to: '/tasks', label: 'Tarefas' },
-    { to: '/notifications', label: `Notificações${unread > 0 ? ` (${unread})` : ''}` },
+    { to: '/notifications', label: 'Notificações', badge: unread > 0 ? unread : undefined },
     { to: '/profile', label: 'Perfil' },
   ];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <header className="border-b border-slate-800 bg-slate-900/60 backdrop-blur sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link to="/tasks" className="font-semibold text-lg text-brand-500 flex items-center gap-2">
-            <span>🚀</span> TaskFlow
+    <div className="min-h-screen bg-board-950 text-ink-100">
+      <header className="sticky top-0 z-10 border-b border-board-700 bg-board-900">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
+          <Link to="/tasks" className="flex items-baseline gap-1 font-display text-2xl tracking-wide uppercase">
+            <span>Task</span>
+            <span className="text-amber-400">Flow</span>
           </Link>
-          <nav className="flex items-center gap-4 text-sm">
-            {navItems.map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={`px-3 py-1.5 rounded-md transition ${
-                  location.pathname.startsWith(item.to)
-                    ? 'bg-brand-600 text-white'
-                    : 'text-slate-300 hover:bg-slate-800'
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
-            <div className="flex items-center gap-2 pl-3 ml-1 border-l border-slate-800">
-              <span className="text-slate-400 hidden sm:inline">{user?.username}</span>
+          <nav className="flex items-center gap-1 text-sm sm:gap-2">
+            {navItems.map((item) => {
+              const active = location.pathname.startsWith(item.to);
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={`relative border-b-2 px-2 py-1.5 transition-colors sm:px-3 ${
+                    active
+                      ? 'border-amber-400 text-ink-100'
+                      : 'border-transparent text-ink-300 hover:text-ink-100'
+                  }`}
+                >
+                  {item.label}
+                  {item.badge !== undefined && (
+                    <span className="ml-1.5 rounded-full bg-amber-400 px-1.5 py-0.5 font-mono text-[10px] font-medium text-board-950">
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+            <div className="ml-2 flex items-center gap-3 border-l border-board-700 pl-3 sm:ml-3 sm:pl-4">
+              <span className="hidden font-mono text-xs text-ink-500 sm:inline">{user?.username}</span>
               <button
                 onClick={() => {
                   logout();
                   navigate('/login');
                 }}
-                className="px-3 py-1.5 rounded-md text-slate-300 hover:bg-slate-800 transition"
+                className="text-ink-300 transition-colors hover:text-rust-400"
               >
                 Sair
               </button>
@@ -64,7 +73,7 @@ export function Layout({ children }: { children: ReactNode }) {
           </nav>
         </div>
       </header>
-      <main className="max-w-5xl mx-auto px-4 py-8">{children}</main>
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">{children}</main>
     </div>
   );
 }

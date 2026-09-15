@@ -26,44 +26,47 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-100 px-4">
-      <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-xl p-8 shadow-xl">
-        <div className="text-center mb-6">
-          <div className="text-3xl mb-2">🚀</div>
-          <h1 className="text-xl font-semibold">Entrar no TaskFlow</h1>
+    <div className="flex min-h-screen items-center justify-center bg-board-950 px-4 text-ink-100">
+      <div className="w-full max-w-sm border-t-4 border-amber-400 bg-board-800 p-8">
+        <div className="mb-7 text-center">
+          <h1 className="font-display text-3xl tracking-wide uppercase">
+            Task<span className="text-amber-400">Flow</span>
+          </h1>
+          <p className="mt-1 font-mono text-xs tracking-wide text-ink-500">TERMINAL DE ACESSO</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm text-slate-400 mb-1">Usuário</label>
+            <label className="mb-1 block text-sm text-ink-300">Usuário</label>
             <input
-              className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-brand-500"
+              className="w-full border border-board-700 bg-board-900 px-3 py-2 text-ink-100 outline-none focus:border-amber-400"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
+              autoFocus
             />
           </div>
           <div>
-            <label className="block text-sm text-slate-400 mb-1">Senha</label>
+            <label className="mb-1 block text-sm text-ink-300">Senha</label>
             <input
               type="password"
-              className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-brand-500"
+              className="w-full border border-board-700 bg-board-900 px-3 py-2 text-ink-100 outline-none focus:border-amber-400"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
           </div>
-          {error && <p className="text-red-400 text-sm">{error}</p>}
+          {error && <p className="text-sm text-rust-400">{error}</p>}
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-brand-600 hover:bg-brand-700 transition rounded-md py-2 font-medium disabled:opacity-50"
+            className="w-full bg-amber-400 py-2 font-medium text-board-950 transition-colors hover:bg-amber-300 disabled:opacity-50"
           >
-            {loading ? 'Entrando...' : 'Entrar'}
+            {loading ? 'Entrando…' : 'Entrar'}
           </button>
         </form>
-        <p className="text-sm text-slate-400 mt-4 text-center">
+        <p className="mt-5 text-center text-sm text-ink-500">
           Não tem conta?{' '}
-          <Link to="/register" className="text-brand-500 hover:underline">
+          <Link to="/register" className="text-amber-400 hover:underline">
             Criar conta
           </Link>
         </p>

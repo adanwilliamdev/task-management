@@ -7,6 +7,9 @@ interface Props {
   onSave: (input: TaskInput) => Promise<void>;
 }
 
+const fieldClass =
+  'w-full border border-board-700 bg-board-900 px-3 py-2 text-ink-100 outline-none focus:border-amber-400';
+
 export function TaskFormModal({ initial, onClose, onSave }: Props) {
   const [title, setTitle] = useState(initial?.title ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
@@ -43,24 +46,32 @@ export function TaskFormModal({ initial, onClose, onSave }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-4 z-20">
-      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl">
-        <h2 className="text-lg font-semibold mb-4">{initial ? 'Editar tarefa' : 'Nova tarefa'}</h2>
+    <div className="fixed inset-0 z-20 flex items-center justify-center bg-board-950/80 px-4">
+      <div className="w-full max-w-md border-t-4 border-amber-400 bg-board-800 p-6">
+        <div className="mb-4">
+          <h2 className="font-display text-xl tracking-wide uppercase">
+            {initial ? 'Editar bilhete' : 'Novo bilhete'}
+          </h2>
+          {initial && (
+            <p className="font-mono text-xs text-ink-500">#{String(initial.id).padStart(4, '0')}</p>
+          )}
+        </div>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-sm text-slate-400 mb-1">Título</label>
+            <label className="mb-1 block text-sm text-ink-300">Título</label>
             <input
-              className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-brand-500"
+              className={fieldClass}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
               maxLength={150}
+              autoFocus
             />
           </div>
           <div>
-            <label className="block text-sm text-slate-400 mb-1">Descrição</label>
+            <label className="mb-1 block text-sm text-ink-300">Descrição</label>
             <textarea
-              className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-brand-500"
+              className={fieldClass}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
@@ -69,21 +80,17 @@ export function TaskFormModal({ initial, onClose, onSave }: Props) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Status</label>
-              <select
-                className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-brand-500"
-                value={status}
-                onChange={(e) => setStatus(e.target.value as TaskStatus)}
-              >
+              <label className="mb-1 block text-sm text-ink-300">Status</label>
+              <select className={fieldClass} value={status} onChange={(e) => setStatus(e.target.value as TaskStatus)}>
                 <option value="TODO">A fazer</option>
                 <option value="IN_PROGRESS">Em progresso</option>
                 <option value="DONE">Concluída</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Prioridade</label>
+              <label className="mb-1 block text-sm text-ink-300">Prioridade</label>
               <select
-                className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-brand-500"
+                className={fieldClass}
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as TaskPriority)}
               >
@@ -94,29 +101,20 @@ export function TaskFormModal({ initial, onClose, onSave }: Props) {
             </div>
           </div>
           <div>
-            <label className="block text-sm text-slate-400 mb-1">Data de entrega</label>
-            <input
-              type="date"
-              className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-brand-500"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-            />
+            <label className="mb-1 block text-sm text-ink-300">Data de entrega</label>
+            <input type="date" className={fieldClass} value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
           </div>
-          {error && <p className="text-red-400 text-sm">{error}</p>}
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-md text-slate-300 hover:bg-slate-800 transition"
-            >
+          {error && <p className="text-sm text-rust-400">{error}</p>}
+          <div className="flex justify-end gap-4 pt-2">
+            <button type="button" onClick={onClose} className="px-2 py-2 text-ink-300 hover:text-ink-100">
               Cancelar
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="px-4 py-2 rounded-md bg-brand-600 hover:bg-brand-700 transition font-medium disabled:opacity-50"
+              className="bg-amber-400 px-4 py-2 font-medium text-board-950 transition-colors hover:bg-amber-300 disabled:opacity-50"
             >
-              {saving ? 'Salvando...' : 'Salvar'}
+              {saving ? 'Salvando…' : 'Salvar'}
             </button>
           </div>
         </form>

@@ -1,13 +1,69 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand-50: #eef2ff;
-  --color-brand-100: #e0e7ff;
-  --color-brand-500: #6366f1;
-  --color-brand-600: #4f46e5;
-  --color-brand-700: #4338ca;
+  --font-display: "Big Shoulders Display", "Arial Narrow", sans-serif;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  /* Board (canvas / panels) */
+  --color-board-950: #0b121c;
+  --color-board-900: #121b28;
+  --color-board-800: #1b2634;
+  --color-board-700: #2a3747;
+  --color-board-600: #3c4b5e;
+
+  /* Text on dark */
+  --color-ink-100: #e7eaef;
+  --color-ink-300: #aeb7c4;
+  --color-ink-500: #8993a6;
+
+  /* Neutral / scheduled */
+  --color-steel-300: #8ba7c4;
+  --color-steel-400: #6c8cad;
+  --color-steel-500: #5c7a99;
+
+  /* Primary accent / active-in-progress */
+  --color-amber-300: #f6c065;
+  --color-amber-400: #f2a93b;
+  --color-amber-500: #da8f22;
+  --color-amber-600: #b3730f;
+
+  /* Urgent / destructive */
+  --color-rust-300: #ef9a7c;
+  --color-rust-400: #e2734f;
+  --color-rust-500: #d9502a;
+
+  /* Done / success */
+  --color-teal-300: #8fdcc9;
+  --color-teal-400: #3fbfa0;
+  --color-teal-500: #2e9e83;
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--color-board-950);
+  color: var(--color-ink-100);
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background-color: var(--color-amber-400);
+  color: var(--color-board-950);
+}
+
+* {
+  scrollbar-color: var(--color-board-600) var(--color-board-900);
+  scrollbar-width: thin;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-amber-400);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }

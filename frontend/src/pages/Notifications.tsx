@@ -38,45 +38,44 @@ export default function Notifications() {
 
   return (
     <Layout>
-      <h1 className="text-2xl font-semibold mb-6">Notificações</h1>
+      <h1 className="mb-6 font-display text-3xl tracking-wide uppercase">Notificações</h1>
 
       {error && (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-300 rounded-md p-3 mb-4 text-sm">
-          {error}
-        </div>
+        <div className="mb-4 border border-rust-500/30 bg-rust-500/10 p-3 text-sm text-rust-300">{error}</div>
       )}
 
       {loading ? (
-        <p className="text-slate-400">Carregando...</p>
+        <p className="text-ink-500">Carregando…</p>
       ) : items.length === 0 ? (
-        <div className="text-center py-16 text-slate-500">
-          <p className="text-4xl mb-3">🔔</p>
-          <p>Você não tem notificações.</p>
-        </div>
+        <p className="border border-dashed border-board-700 px-3 py-16 text-center text-ink-500">
+          Nenhuma notificação registrada.
+        </p>
       ) : (
-        <div className="grid gap-2">
+        <div className="max-w-2xl divide-y divide-board-700 border border-board-700 bg-board-800">
           {items.map((n) => (
             <div
               key={n.id}
-              className={`rounded-lg p-4 border flex items-start justify-between gap-4 ${
-                n.read ? 'bg-slate-900/50 border-slate-800' : 'bg-slate-900 border-brand-600/50'
+              className={`flex items-start justify-between gap-4 border-l-4 p-4 ${
+                n.read ? 'border-l-transparent' : 'border-l-amber-400'
               }`}
             >
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-medium">{n.title}</h3>
-                  {!n.read && <span className="w-2 h-2 rounded-full bg-brand-500" />}
+              <div className="min-w-0">
+                <div className="mb-1 flex items-center gap-2">
+                  <span className="font-mono text-xs text-ink-500">
+                    {new Date(n.createdAt).toLocaleString('pt-BR')}
+                  </span>
+                  {!n.read && <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />}
                 </div>
-                <p className="text-sm text-slate-400">{n.message}</p>
-                <p className="text-xs text-slate-600 mt-1">{new Date(n.createdAt).toLocaleString('pt-BR')}</p>
+                <h3 className="font-medium">{n.title}</h3>
+                <p className="mt-0.5 text-sm text-ink-300">{n.message}</p>
               </div>
-              <div className="flex gap-3 text-xs shrink-0">
+              <div className="flex shrink-0 gap-3 text-xs">
                 {!n.read && (
-                  <button onClick={() => handleMarkAsRead(n.id)} className="text-brand-400 hover:underline">
+                  <button onClick={() => handleMarkAsRead(n.id)} className="text-steel-300 hover:underline">
                     Marcar como lida
                   </button>
                 )}
-                <button onClick={() => handleDelete(n.id)} className="text-red-400 hover:underline">
+                <button onClick={() => handleDelete(n.id)} className="text-rust-400 hover:underline">
                   Excluir
                 </button>
               </div>

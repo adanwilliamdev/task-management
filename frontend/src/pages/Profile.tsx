@@ -5,6 +5,9 @@ import type { UserProfile } from '../types';
 import { getErrorMessage } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 
+const fieldClass =
+  'w-full border border-board-700 bg-board-900 px-3 py-2 text-ink-100 outline-none focus:border-amber-400';
+
 export default function Profile() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -53,64 +56,54 @@ export default function Profile() {
     }
   }
 
+  const initial = (user?.username ?? '?').charAt(0).toUpperCase();
+
   return (
     <Layout>
-      <h1 className="text-2xl font-semibold mb-6">Meu perfil</h1>
+      <h1 className="mb-6 font-display text-3xl tracking-wide uppercase">Perfil</h1>
 
       {loading ? (
-        <p className="text-slate-400">Carregando...</p>
+        <p className="text-ink-500">Carregando…</p>
       ) : (
-        <div className="max-w-lg">
-          <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 mb-6">
-            <p className="text-sm text-slate-400">Usuário</p>
-            <p className="font-medium">{user?.username}</p>
-            <p className="text-sm text-slate-400 mt-2">Email</p>
-            <p className="font-medium">{user?.email}</p>
+        <div className="max-w-lg space-y-6">
+          <div className="border-t-4 border-amber-400 bg-board-800 p-5">
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center border border-amber-400 font-display text-2xl text-amber-400">
+                {initial}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate font-medium">{user?.username}</p>
+                <p className="truncate text-sm text-ink-500">{user?.email}</p>
+              </div>
+            </div>
             {profile?.createdAt && (
-              <>
-                <p className="text-sm text-slate-400 mt-2">Perfil criado em</p>
-                <p className="font-medium">{new Date(profile.createdAt).toLocaleDateString('pt-BR')}</p>
-              </>
+              <p className="mt-4 border-t border-board-700 pt-3 font-mono text-xs text-ink-500">
+                Cadastrado em {new Date(profile.createdAt).toLocaleDateString('pt-BR')}
+              </p>
             )}
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4 bg-slate-900 border border-slate-800 rounded-lg p-5">
+          <form onSubmit={handleSubmit} className="space-y-4 border border-board-700 bg-board-800 p-5">
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Nome completo</label>
-              <input
-                className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-brand-500"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                maxLength={120}
-              />
+              <label className="mb-1 block text-sm text-ink-300">Nome completo</label>
+              <input className={fieldClass} value={fullName} onChange={(e) => setFullName(e.target.value)} maxLength={120} />
             </div>
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Bio</label>
-              <textarea
-                className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-brand-500"
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                rows={3}
-                maxLength={500}
-              />
+              <label className="mb-1 block text-sm text-ink-300">Bio</label>
+              <textarea className={fieldClass} value={bio} onChange={(e) => setBio(e.target.value)} rows={3} maxLength={500} />
             </div>
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Telefone</label>
-              <input
-                className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-brand-500"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                maxLength={30}
-              />
+              <label className="mb-1 block text-sm text-ink-300">Telefone</label>
+              <input className={fieldClass} value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={30} />
             </div>
-            {error && <p className="text-red-400 text-sm">{error}</p>}
-            {success && <p className="text-emerald-400 text-sm">Perfil atualizado!</p>}
+            {error && <p className="text-sm text-rust-400">{error}</p>}
+            {success && <p className="text-sm text-teal-400">Perfil atualizado.</p>}
             <button
               type="submit"
               disabled={saving}
-              className="bg-brand-600 hover:bg-brand-700 transition rounded-md px-4 py-2 font-medium disabled:opacity-50"
+              className="bg-amber-400 px-4 py-2 font-medium text-board-950 transition-colors hover:bg-amber-300 disabled:opacity-50"
             >
-              {saving ? 'Salvando...' : 'Salvar alterações'}
+              {saving ? 'Salvando…' : 'Salvar alterações'}
             </button>
           </form>
         </div>
