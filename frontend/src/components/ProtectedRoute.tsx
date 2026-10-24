@@ -7,8 +7,8 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-board-950 font-mono text-sm text-ink-500">
-        Carregando…
+      <div className="flex min-h-screen items-center justify-center text-sm text-fog-500">
+        <span className="skeleton block h-3 w-24" />
       </div>
     );
   }
