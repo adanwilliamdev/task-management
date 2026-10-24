@@ -1,31 +1,31 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Layout, NOTIFICATIONS_CHANGED } from '../components/Layout';
+import { Layout } from '../components/Layout';
 import { useToast } from '../components/Toast';
-import { IconAlert, IconBell, IconCalendar, IconCheck, IconInfo, IconSparkle, IconTrash } from '../components/Icons';
 import * as notificationsApi from '../api/notifications';
-import type { NotificationItem, NotificationType } from '../types';
 import { getErrorMessage } from '../api/client';
-import { relativeTime } from '../lib/format';
+import { formatDateTime, relativeTime } from '../lib/format';
+import type { NotificationItem, NotificationType } from '../types';
 
-const TYPE_STYLE: Record<NotificationType, { icon: typeof IconInfo; tone: string }> = {
-  INFO: { icon: IconInfo, tone: 'bg-sky-soft/15 text-sky-soft' },
-  TASK_ASSIGNED: { icon: IconSparkle, tone: 'bg-iris-500/15 text-iris-300' },
-  TASK_DUE: { icon: IconCalendar, tone: 'bg-sun-400/15 text-sun-400' },
-  SYSTEM: { icon: IconAlert, tone: 'bg-white/10 text-fog-300' },
+const TYPE_META: Record<NotificationType, { label: string; className: string }> = {
+  INFO: { label: 'INFO', className: 'text-steel-300 border-steel-400' },
+  TASK_ASSIGNED: { label: 'TAREFA', className: 'text-amber-300 border-amber-400' },
+  TASK_COMPLETED: { label: 'CONCLUÍDA', className: 'text-teal-300 border-teal-400' },
+  TASK_DUE: { label: 'PRAZO', className: 'text-rust-300 border-rust-400' },
+  SYSTEM: { label: 'SISTEMA', className: 'text-steel-300 border-steel-400' },
 };
 
-function notifyChanged() {
-  window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED));
-}
+type Filter = 'all' | 'unread';
 
 export default function Notifications() {
   const toast = useToast();
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [onlyUnread, setOnlyUnread] = useState(false);
+  const [filter, setFilter] = useState<Filter>('all');
+  const [markingAll, setMarkingAll] = useState(false);
 
   const load = useCallback(async () => {
+    setLoading(true);
     setError('');
     try {
       setItems(await notificationsApi.listNotifications());
@@ -37,161 +37,151 @@ export default function Notifications() {
   }, []);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
-  const unreadCount = useMemo(() => items.filter((n) => !n.read).length, [items]);
-  const visible = useMemo(() => (onlyUnread ? items.filter((n) => !n.read) : items), [items, onlyUnread]);
+  const unread = useMemo(() => items.filter((n) => !n.read).length, [items]);
+  const visible = filter === 'unread' ? items.filter((n) => !n.read) : items;
 
   async function handleMarkAsRead(id: number) {
-    const previous = items;
-    setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
     try {
-      await notificationsApi.markAsRead(id);
-      notifyChanged();
+      const updated = await notificationsApi.markAsRead(id);
+      setItems((cur) => cur.map((n) => (n.id === id ? updated : n)));
+      notificationsApi.announceNotificationsChanged();
     } catch (err) {
-      setItems(previous);
-      toast.error(getErrorMessage(err));
+      toast.error(getErrorMessage(err, 'Não foi possível marcar como lida.'));
     }
   }
 
   async function handleMarkAll() {
-    const previous = items;
-    const unread = items.filter((n) => !n.read);
-    setItems((prev) => prev.map((n) => ({ ...n, read: true })));
+    setMarkingAll(true);
     try {
-      await Promise.all(unread.map((n) => notificationsApi.markAsRead(n.id)));
-      notifyChanged();
-      toast.success('Tudo marcado como lido');
+      await notificationsApi.markAllAsRead();
+      setItems((cur) => cur.map((n) => ({ ...n, read: true })));
+      notificationsApi.announceNotificationsChanged();
+      toast.success('Todas as notificações foram marcadas como lidas.');
     } catch (err) {
-      setItems(previous);
-      toast.error(getErrorMessage(err));
+      toast.error(getErrorMessage(err, 'Não foi possível marcar todas como lidas.'));
+    } finally {
+      setMarkingAll(false);
     }
   }
 
   async function handleDelete(id: number) {
-    const previous = items;
-    setItems((prev) => prev.filter((n) => n.id !== id));
     try {
       await notificationsApi.deleteNotification(id);
-      notifyChanged();
+      setItems((cur) => cur.filter((n) => n.id !== id));
+      notificationsApi.announceNotificationsChanged();
     } catch (err) {
-      setItems(previous);
-      toast.error(getErrorMessage(err));
+      toast.error(getErrorMessage(err, 'Não foi possível excluir a notificação.'));
     }
   }
 
   return (
     <Layout>
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">Notificações</h1>
-          <p className="mt-1.5 text-fog-500">
-            {loading ? 'Carregando…' : unreadCount > 0 ? `${unreadCount} não ${unreadCount === 1 ? 'lida' : 'lidas'}` : 'Você está em dia.'}
-          </p>
-        </div>
-        {unreadCount > 0 && (
-          <button onClick={handleMarkAll} className="btn btn-ghost border-white/10">
-            <IconCheck className="h-4 w-4" />
-            Marcar tudo como lido
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-display text-3xl tracking-wide uppercase">Notificações</h1>
+        {unread > 0 && (
+          <button
+            type="button"
+            onClick={() => void handleMarkAll()}
+            disabled={markingAll}
+            className="text-sm text-steel-300 hover:underline disabled:opacity-50"
+          >
+            {markingAll ? 'Marcando…' : `Marcar todas como lidas (${unread})`}
           </button>
         )}
       </div>
 
-      <div className="mt-6 inline-flex gap-1 rounded-xl bg-night-850 p-1" role="group" aria-label="Filtrar notificações">
-        {([[false, 'Todas'], [true, 'Não lidas']] as const).map(([value, label]) => (
-          <button
-            key={label}
-            onClick={() => setOnlyUnread(value)}
-            aria-pressed={onlyUnread === value}
-            className={`rounded-lg px-3.5 py-1.5 text-sm font-semibold transition-all duration-200 ${
-              onlyUnread === value ? 'bg-night-600 text-fog-100' : 'text-fog-500 hover:text-fog-300'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
       {error && (
-        <div className="anim-fade mt-4 flex items-center justify-between gap-3 rounded-xl border border-rose-400/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-400">
+        <div
+          role="alert"
+          className="mb-4 flex max-w-2xl items-center justify-between gap-4 border border-rust-500/30 bg-rust-500/10 p-3 text-sm text-rust-300"
+        >
           <span>{error}</span>
-          <button onClick={load} className="font-semibold hover:underline">
-            Tentar de novo
+          <button type="button" onClick={() => void load()} className="shrink-0 underline">
+            Tentar novamente
           </button>
         </div>
       )}
 
-      <div className="mt-5 max-w-2xl">
-        {loading ? (
-          <div className="space-y-3">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="skeleton h-24" />
-            ))}
-          </div>
-        ) : visible.length === 0 ? (
-          <div className="surface anim-pop flex flex-col items-center px-6 py-16 text-center">
-            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/[0.06] text-fog-300">
-              <IconBell className="h-7 w-7" />
-            </span>
-            <h2 className="mt-5 font-display text-xl font-semibold">
-              {onlyUnread ? 'Nada novo por aqui' : 'Nenhuma notificação ainda'}
-            </h2>
-            <p className="mt-1.5 max-w-xs text-sm text-fog-500">
-              {onlyUnread ? 'Todas as notificações já foram lidas.' : 'Avisos sobre suas tarefas vão aparecer aqui.'}
-            </p>
-          </div>
-        ) : (
-          <ul className="space-y-3">
-            {visible.map((n, index) => {
-              const style = TYPE_STYLE[n.type] ?? TYPE_STYLE.INFO;
-              const Icon = style.icon;
-              return (
-                <li
-                  key={n.id}
-                  style={{ animationDelay: `${Math.min(index, 6) * 40}ms` }}
-                  className={`surface anim-card group flex items-start gap-4 p-4 transition-colors ${
-                    n.read ? 'opacity-75 hover:opacity-100' : 'border-iris-400/25'
-                  }`}
-                >
-                  <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${style.tone}`}>
-                    <Icon className="h-5 w-5" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold leading-snug">{n.title}</h3>
-                      {!n.read && <span className="h-2 w-2 shrink-0 rounded-full bg-iris-400" aria-label="Não lida" />}
-                    </div>
-                    <p className="mt-0.5 text-sm leading-relaxed text-fog-300">{n.message}</p>
-                    <div className="mt-3 flex items-center gap-4">
-                      <time className="text-xs text-fog-500" dateTime={n.createdAt} title={new Date(n.createdAt).toLocaleString('pt-BR')}>
-                        {relativeTime(n.createdAt)}
-                      </time>
-                      {!n.read && (
-                        <button
-                          onClick={() => handleMarkAsRead(n.id)}
-                          className="text-xs font-semibold text-iris-300 transition-colors hover:text-iris-400"
-                        >
-                          Marcar como lida
-                        </button>
-                      )}
-                    </div>
+      {!loading && items.length > 0 && (
+        <div className="mb-4 flex gap-4 border-b border-board-700 text-sm" role="tablist" aria-label="Filtro">
+          {(
+            [
+              ['all', `Todas (${items.length})`],
+              ['unread', `Não lidas (${unread})`],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              role="tab"
+              aria-selected={filter === value}
+              onClick={() => setFilter(value)}
+              className={`-mb-px border-b-2 px-1 py-2 transition-colors ${
+                filter === value ? 'border-amber-400 text-ink-100' : 'border-transparent text-ink-300 hover:text-ink-100'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="max-w-2xl space-y-px" aria-busy="true" aria-label="Carregando notificações">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-20 animate-pulse border border-board-700 bg-board-800" />
+          ))}
+        </div>
+      ) : items.length === 0 ? (
+        <p className="max-w-2xl border border-dashed border-board-700 px-3 py-16 text-center text-ink-500">
+          Nenhuma notificação por enquanto. Quando você criar ou concluir tarefas, os avisos aparecem aqui.
+        </p>
+      ) : visible.length === 0 ? (
+        <p className="max-w-2xl border border-dashed border-board-700 px-3 py-12 text-center text-ink-500">
+          Nenhuma notificação não lida.
+        </p>
+      ) : (
+        <ul className="max-w-2xl divide-y divide-board-700 border border-board-700 bg-board-800">
+          {visible.map((n) => {
+            const meta = TYPE_META[n.type] ?? TYPE_META.INFO;
+            return (
+              <li
+                key={n.id}
+                className={`flex items-start justify-between gap-4 border-l-4 p-4 ${
+                  n.read ? 'border-l-transparent' : 'border-l-amber-400'
+                }`}
+              >
+                <div className="min-w-0">
+                  <div className="mb-1 flex flex-wrap items-center gap-2">
+                    <span className={`border px-1.5 py-0.5 font-mono text-[10px] tracking-wide ${meta.className}`}>
+                      {meta.label}
+                    </span>
+                    <time dateTime={n.createdAt} title={formatDateTime(n.createdAt)} className="font-mono text-xs text-ink-500">
+                      {relativeTime(n.createdAt)}
+                    </time>
+                    {!n.read && <span className="h-1.5 w-1.5 rounded-full bg-amber-400" aria-label="Não lida" />}
                   </div>
-                  <button
-                    onClick={() => handleDelete(n.id)}
-                    className="icon-btn -mr-1 -mt-1 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
-                    data-tone="danger"
-                    aria-label="Excluir notificação"
-                    title="Excluir"
-                  >
-                    <IconTrash className="h-4 w-4" />
+                  <h3 className="font-medium">{n.title}</h3>
+                  <p className="mt-0.5 text-sm text-ink-300">{n.message}</p>
+                </div>
+                <div className="flex shrink-0 gap-3 text-xs">
+                  {!n.read && (
+                    <button type="button" onClick={() => void handleMarkAsRead(n.id)} className="text-steel-300 hover:underline">
+                      Marcar como lida
+                    </button>
+                  )}
+                  <button type="button" onClick={() => void handleDelete(n.id)} className="text-rust-400 hover:underline">
+                    Excluir
                   </button>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </Layout>
   );
 }

@@ -33,11 +33,21 @@ public class UserProfileService {
                         .username(user.username())
                         .build());
 
-        if (request.getFullName() != null) profile.setFullName(request.getFullName());
-        if (request.getBio() != null) profile.setBio(request.getBio());
-        if (request.getPhone() != null) profile.setPhone(request.getPhone());
+        // null = não alterar; string vazia = limpar o campo
+        if (request.getFullName() != null) profile.setFullName(blankToNull(request.getFullName()));
+        if (request.getBio() != null) profile.setBio(blankToNull(request.getBio()));
+        if (request.getPhone() != null) profile.setPhone(blankToNull(request.getPhone()));
 
         return toResponse(repository.save(profile));
+    }
+
+    private static String blankToNull(String value) {
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private static String blankToNull(String value) {
+        return value.isBlank() ? null : value.trim();
     }
 
     private UserProfileResponse toResponse(UserProfile p) {

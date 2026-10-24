@@ -2,7 +2,9 @@ package com.taskflow.task.controller;
 
 import com.taskflow.task.dto.TaskRequest;
 import com.taskflow.task.dto.TaskResponse;
+import com.taskflow.task.dto.TaskStatsResponse;
 import com.taskflow.task.dto.TaskStatusUpdateRequest;
+import com.taskflow.task.model.TaskPriority;
 import com.taskflow.task.model.TaskStatus;
 import com.taskflow.task.security.AuthenticatedUser;
 import com.taskflow.task.service.TaskService;
@@ -24,14 +26,21 @@ public class TaskController {
 
     @PostMapping
     public ResponseEntity<TaskResponse> create(@AuthenticationPrincipal AuthenticatedUser user,
-                                                @Valid @RequestBody TaskRequest request) {
+                                               @Valid @RequestBody TaskRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.create(user, request));
     }
 
     @GetMapping
     public List<TaskResponse> list(@AuthenticationPrincipal AuthenticatedUser user,
-                                    @RequestParam(required = false) TaskStatus status) {
-        return service.list(user, status);
+                                   @RequestParam(required = false) TaskStatus status,
+                                   @RequestParam(required = false) TaskPriority priority,
+                                   @RequestParam(required = false, name = "q") String query) {
+        return service.list(user, status, priority, query);
+    }
+
+    @GetMapping("/stats")
+    public TaskStatsResponse stats(@AuthenticationPrincipal AuthenticatedUser user) {
+        return service.stats(user);
     }
 
     @GetMapping("/{id}")
@@ -41,15 +50,15 @@ public class TaskController {
 
     @PutMapping("/{id}")
     public TaskResponse update(@AuthenticationPrincipal AuthenticatedUser user,
-                                @PathVariable Long id,
-                                @Valid @RequestBody TaskRequest request) {
+                               @PathVariable Long id,
+                               @Valid @RequestBody TaskRequest request) {
         return service.update(user, id, request);
     }
 
     @PatchMapping("/{id}/status")
     public TaskResponse updateStatus(@AuthenticationPrincipal AuthenticatedUser user,
-                                      @PathVariable Long id,
-                                      @Valid @RequestBody TaskStatusUpdateRequest request) {
+                                     @PathVariable Long id,
+                                     @Valid @RequestBody TaskStatusUpdateRequest request) {
         return service.updateStatus(user, id, request);
     }
 

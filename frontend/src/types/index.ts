@@ -1,6 +1,6 @@
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE';
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH';
-export type NotificationType = 'INFO' | 'TASK_ASSIGNED' | 'TASK_DUE' | 'SYSTEM';
+export type NotificationType = 'INFO' | 'TASK_ASSIGNED' | 'TASK_COMPLETED' | 'TASK_DUE' | 'SYSTEM';
 
 export interface AuthResponse {
   token: string;
@@ -25,6 +25,7 @@ export interface Task {
   status: TaskStatus;
   priority: TaskPriority;
   dueDate?: string;
+  overdue: boolean;
   userId: number;
   createdAt: string;
   updatedAt: string;
@@ -65,5 +66,5 @@ export interface ApiError {
   error: string;
   message: string;
   path: string;
-  validationErrors?: Record<string, string>;
+  validationErrors?: Record<string, string> | null;
 }

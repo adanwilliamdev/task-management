@@ -1,10 +1,12 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import * as authApi from '../api/auth';
-import type { CurrentUser } from '../types';
+import { setUnauthorizedHandler, TOKEN_KEY, USER_KEY } from '../api/client';
+import type { AuthResponse, CurrentUser } from '../types';
 
 interface AuthContextValue {
   user: CurrentUser | null;
-  loading: boolean;
+  /** true quando a sessão terminou por expiração do token (e não por logout manual). */
+  sessionExpired: boolean;
   login: (username: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
@@ -12,52 +14,110 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<CurrentUser | null>(null);
-  const [loading, setLoading] = useState(true);
+function clearSession() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+}
 
-  useEffect(() => {
-    const stored = localStorage.getItem('taskflow_user');
-    const token = localStorage.getItem('taskflow_token');
-    if (stored && token) {
-      setUser(JSON.parse(stored));
+/** Lê o `exp` (em ms) do payload do JWT; null se o token for inválido. */
+function tokenExpiresAt(token: string): number | null {
+  try {
+    const payload = token.split('.')[1];
+    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+    const { exp } = JSON.parse(json) as { exp?: number };
+    return typeof exp === 'number' ? exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+function readStoredSession(): { user: CurrentUser | null; expired: boolean } {
+  try {
+    const token = localStorage.getItem(TOKEN_KEY);
+    const stored = localStorage.getItem(USER_KEY);
+    if (!token || !stored) {
+      clearSession();
+      return { user: null, expired: false };
     }
-    setLoading(false);
+    const expiresAt = tokenExpiresAt(token);
+    if (expiresAt === null || expiresAt <= Date.now()) {
+      clearSession();
+      return { user: null, expired: true };
+    }
+    return { user: JSON.parse(stored) as CurrentUser, expired: false };
+  } catch {
+    clearSession();
+    return { user: null, expired: false };
+  }
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [initial] = useState(readStoredSession);
+  const [user, setUser] = useState<CurrentUser | null>(initial.user);
+  const [sessionExpired, setSessionExpired] = useState(initial.expired);
+
+  const logout = useCallback(() => {
+    clearSession();
+    setUser(null);
+    setSessionExpired(false);
   }, []);
 
-  function persist(res: { token: string; userId: number; username: string; email: string; role: string }) {
+  const expireSession = useCallback(() => {
+    clearSession();
+    setUser(null);
+    setSessionExpired(true);
+  }, []);
+
+  const persist = useCallback((res: AuthResponse) => {
     const currentUser: CurrentUser = {
       userId: res.userId,
       username: res.username,
       email: res.email,
       role: res.role,
     };
-    localStorage.setItem('taskflow_token', res.token);
-    localStorage.setItem('taskflow_user', JSON.stringify(currentUser));
+    localStorage.setItem(TOKEN_KEY, res.token);
+    localStorage.setItem(USER_KEY, JSON.stringify(currentUser));
+    setSessionExpired(false);
     setUser(currentUser);
-  }
+  }, []);
 
-  async function login(username: string, password: string) {
-    const res = await authApi.login(username, password);
-    persist(res);
-  }
-
-  async function register(username: string, email: string, password: string) {
-    const res = await authApi.register(username, email, password);
-    persist(res);
-  }
-
-  function logout() {
-    localStorage.removeItem('taskflow_token');
-    localStorage.removeItem('taskflow_user');
-    setUser(null);
-  }
-
-  return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
-      {children}
-    </AuthContext.Provider>
+  const login = useCallback(
+    async (username: string, password: string) => {
+      persist(await authApi.login(username, password));
+    },
+    [persist]
   );
+
+  const register = useCallback(
+    async (username: string, email: string, password: string) => {
+      persist(await authApi.register(username, email, password));
+    },
+    [persist]
+  );
+
+  // 401 vindo do backend -> volta para o login sem recarregar a página
+  useEffect(() => {
+    setUnauthorizedHandler(expireSession);
+    return () => setUnauthorizedHandler(null);
+  }, [expireSession]);
+
+  // Encerra a sessão automaticamente quando o token expira
+  useEffect(() => {
+    if (!user) return;
+    const token = localStorage.getItem(TOKEN_KEY);
+    const expiresAt = token ? tokenExpiresAt(token) : null;
+    if (expiresAt === null) return;
+    const delay = Math.min(Math.max(expiresAt - Date.now(), 0), 2_000_000_000);
+    const timer = window.setTimeout(expireSession, delay);
+    return () => window.clearTimeout(timer);
+  }, [user, expireSession]);
+
+  const value = useMemo(
+    () => ({ user, sessionExpired, login, register, logout }),
+    [user, sessionExpired, login, register, logout]
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

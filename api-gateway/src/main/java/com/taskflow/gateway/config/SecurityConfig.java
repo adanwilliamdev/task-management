@@ -7,9 +7,9 @@ import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 
 /**
- * O gateway apenas roteia as requisições — a autenticação/validação do JWT
- * é feita em cada microsserviço downstream (auth, user, task, notification).
- * Aqui só liberamos todas as rotas e delegamos a segurança para os serviços finais.
+ * O gateway apenas roteia as requisições: a validação do JWT é feita em cada
+ * microsserviço downstream. Por isso todas as rotas ficam liberadas aqui.
+ * CORS é configurado em spring.cloud.gateway.globalcors (application.yml).
  */
 @Configuration
 @EnableWebFluxSecurity

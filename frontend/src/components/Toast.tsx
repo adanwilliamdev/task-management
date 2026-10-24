@@ -1,56 +1,72 @@
-import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react';
-import { IconAlert, IconCheck } from './Icons';
+import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
 
-type ToastTone = 'success' | 'error';
+type ToastKind = 'success' | 'error';
+
 interface ToastItem {
   id: number;
+  kind: ToastKind;
   message: string;
-  tone: ToastTone;
 }
 
-interface ToastContextValue {
+interface ToastApi {
   success: (message: string) => void;
   error: (message: string) => void;
 }
 
-const ToastContext = createContext<ToastContextValue | undefined>(undefined);
+const ToastContext = createContext<ToastApi | undefined>(undefined);
+
+const KIND_CLASS: Record<ToastKind, string> = {
+  success: 'border-l-teal-400',
+  error: 'border-l-rust-400',
+};
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([]);
   const nextId = useRef(1);
 
-  const push = useCallback((message: string, tone: ToastTone) => {
-    const id = nextId.current++;
-    setItems((prev) => [...prev, { id, message, tone }]);
-    window.setTimeout(() => setItems((prev) => prev.filter((t) => t.id !== id)), 3600);
+  const dismiss = useCallback((id: number) => {
+    setItems((prev) => prev.filter((item) => item.id !== id));
   }, []);
 
-  const value: ToastContextValue = {
-    success: useCallback((m: string) => push(m, 'success'), [push]),
-    error: useCallback((m: string) => push(m, 'error'), [push]),
-  };
+  const push = useCallback(
+    (kind: ToastKind, message: string) => {
+      const id = nextId.current++;
+      setItems((prev) => [...prev.slice(-2), { id, kind, message }]);
+      window.setTimeout(() => dismiss(id), 4500);
+    },
+    [dismiss]
+  );
+
+  const api = useMemo<ToastApi>(
+    () => ({
+      success: (message) => push('success', message),
+      error: (message) => push('error', message),
+    }),
+    [push]
+  );
 
   return (
-    <ToastContext.Provider value={value}>
+    <ToastContext.Provider value={api}>
       {children}
       <div
-        className="pointer-events-none fixed inset-x-0 bottom-24 z-50 flex flex-col items-center gap-2 px-4 md:bottom-6 md:items-end md:px-6"
-        role="status"
         aria-live="polite"
+        className="pointer-events-none fixed right-4 bottom-4 z-40 flex w-full max-w-sm flex-col gap-2"
       >
-        {items.map((t) => (
+        {items.map((item) => (
           <div
-            key={t.id}
-            className="anim-toast glass pointer-events-auto flex max-w-sm items-center gap-3 rounded-2xl px-4 py-3 text-sm shadow-[0_20px_40px_-12px_rgb(0_0_0/0.7)]"
+            key={item.id}
+            role={item.kind === 'error' ? 'alert' : 'status'}
+            className={`pointer-events-auto flex items-start justify-between gap-3 border border-board-700 border-l-4 bg-board-800 px-4 py-3 text-sm shadow-lg ${KIND_CLASS[item.kind]}`}
           >
-            <span
-              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
-                t.tone === 'success' ? 'bg-mint-400/15 text-mint-400' : 'bg-rose-400/15 text-rose-400'
-              }`}
+            <span>{item.message}</span>
+            <button
+              type="button"
+              onClick={() => dismiss(item.id)}
+              aria-label="Fechar aviso"
+              className="text-ink-500 hover:text-ink-100"
             >
-              {t.tone === 'success' ? <IconCheck className="h-3.5 w-3.5" /> : <IconAlert className="h-3.5 w-3.5" />}
-            </span>
-            <span>{t.message}</span>
+              ×
+            </button>
           </div>
         ))}
       </div>
@@ -58,7 +74,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 export function useToast() {
   const ctx = useContext(ToastContext);
   if (!ctx) throw new Error('useToast deve ser usado dentro de ToastProvider');

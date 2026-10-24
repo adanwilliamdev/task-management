@@ -21,6 +21,7 @@ public class TaskResponse {
     private TaskStatus status;
     private TaskPriority priority;
     private LocalDate dueDate;
+    private boolean overdue;
     private Long userId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

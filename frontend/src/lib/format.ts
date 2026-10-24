@@ -1,43 +1,45 @@
-function parseLocalDate(value: string): Date {
-  const [y, m, d] = value.split('-').map(Number);
-  return new Date(y, (m ?? 1) - 1, d ?? 1);
+import type { Task } from '../types';
+
+export function ticketNumber(id: number): string {
+  return `#${String(id).padStart(4, '0')}`;
 }
 
-function startOfToday(): Date {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+/** Converte "YYYY-MM-DD" em Date local (evita o deslocamento de fuso do `new Date(iso)`). */
+export function parseLocalDate(value: string): Date {
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year, month - 1, day);
 }
 
-export function daysUntil(dueDate: string): number {
-  const diff = parseLocalDate(dueDate).getTime() - startOfToday().getTime();
-  return Math.round(diff / 86_400_000);
+export function formatDate(value: string): string {
+  return parseLocalDate(value).toLocaleDateString('pt-BR');
 }
 
-export function formatDue(dueDate: string): { label: string; tone: 'overdue' | 'soon' | 'normal' } {
-  const days = daysUntil(dueDate);
-  if (days < 0) return { label: days === -1 ? 'Venceu ontem' : `Venceu há ${-days} dias`, tone: 'overdue' };
-  if (days === 0) return { label: 'Vence hoje', tone: 'soon' };
-  if (days === 1) return { label: 'Vence amanhã', tone: 'soon' };
-  const label = parseLocalDate(dueDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
-  return { label: days <= 3 ? `Vence em ${days} dias` : label.replace('.', ''), tone: days <= 3 ? 'soon' : 'normal' };
+/** O backend serializa LocalDateTime em UTC, sem sufixo de fuso: assumimos UTC. */
+export function parseServerDateTime(value: string): Date {
+  const hasZone = /(Z|[+-]\d{2}:?\d{2})$/.test(value);
+  return new Date(hasZone ? value : `${value}Z`);
 }
 
-export function relativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const min = Math.round(diff / 60_000);
-  if (min < 1) return 'agora';
-  if (min < 60) return `há ${min} min`;
-  const hours = Math.round(min / 60);
-  if (hours < 24) return `há ${hours} h`;
-  const days = Math.round(hours / 24);
-  if (days < 7) return `há ${days} d`;
-  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '');
+export function formatDateTime(value: string): string {
+  return parseServerDateTime(value).toLocaleString('pt-BR');
 }
 
-export function greeting(): string {
-  const h = new Date().getHours();
-  if (h < 5) return 'Boa madrugada';
-  if (h < 12) return 'Bom dia';
-  if (h < 18) return 'Boa tarde';
-  return 'Boa noite';
+export function relativeTime(value: string, now: Date = new Date()): string {
+  const date = parseServerDateTime(value);
+  const diffSeconds = Math.round((date.getTime() - now.getTime()) / 1000);
+  const abs = Math.abs(diffSeconds);
+  const rtf = new Intl.RelativeTimeFormat('pt-BR', { numeric: 'auto' });
+
+  if (abs < 60) return 'agora mesmo';
+  if (abs < 3600) return rtf.format(Math.round(diffSeconds / 60), 'minute');
+  if (abs < 86400) return rtf.format(Math.round(diffSeconds / 3600), 'hour');
+  if (abs < 86400 * 30) return rtf.format(Math.round(diffSeconds / 86400), 'day');
+  return date.toLocaleDateString('pt-BR');
+}
+
+export function isOverdue(task: Pick<Task, 'status' | 'dueDate'>): boolean {
+  if (task.status === 'DONE' || !task.dueDate) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return parseLocalDate(task.dueDate).getTime() < today.getTime();
 }

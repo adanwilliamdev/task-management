@@ -1,5 +1,6 @@
 package com.taskflow.user.dto;
 
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -13,5 +14,6 @@ public class UpdateProfileRequest {
     private String bio;
 
     @Size(max = 30, message = "Telefone deve ter no máximo 30 caracteres")
+    @Pattern(regexp = "^[0-9+()\\-.\\s]*$", message = "Telefone contém caracteres inválidos")
     private String phone;
 }

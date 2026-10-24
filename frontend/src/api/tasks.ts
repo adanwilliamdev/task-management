@@ -1,8 +1,14 @@
 import { api } from './client';
-import type { Task, TaskInput, TaskStatus } from '../types';
+import type { Task, TaskInput, TaskPriority, TaskStatus } from '../types';
 
-export function listTasks(status?: TaskStatus) {
-  return api.get<Task[]>('/tasks', { params: status ? { status } : {} }).then((r) => r.data);
+export interface TaskQuery {
+  status?: TaskStatus;
+  priority?: TaskPriority;
+  q?: string;
+}
+
+export function listTasks(query: TaskQuery = {}) {
+  return api.get<Task[]>('/tasks', { params: query }).then((r) => r.data);
 }
 
 export function getTask(id: number) {
