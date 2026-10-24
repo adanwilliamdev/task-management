@@ -1,10 +1,11 @@
+# syntax=docker/dockerfile:1
 # Build
 FROM maven:3.9-eclipse-temurin-17-alpine AS build
 WORKDIR /app
 COPY pom.xml .
-RUN mvn dependency:go-offline -B
+RUN --mount=type=cache,target=/root/.m2 mvn dependency:go-offline -B -Dmaven.wagon.http.retryHandler.count=5 -Daether.connector.connectTimeout=60000 -Daether.connector.requestTimeout=120000
 COPY src ./src
-RUN mvn package -Dmaven.test.skip=true -B
+RUN --mount=type=cache,target=/root/.m2 mvn package -Dmaven.test.skip=true -B -Dmaven.wagon.http.retryHandler.count=5 -Daether.connector.connectTimeout=60000 -Daether.connector.requestTimeout=120000
 
 # Run
 FROM eclipse-temurin:17-jre-alpine
