@@ -46,6 +46,7 @@ services:
         condition: service_healthy
     environment:
       EUREKA_URL: http://discovery-service:8761/eureka/
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
       JWT_SECRET: ${JWT_SECRET:-taskflowSecretKeyForJwtTokenGenerationWith256BitsLength}
       DB_HOST: postgres
       DB_NAME: taskflow_auth
@@ -74,6 +75,7 @@ services:
         condition: service_healthy
     environment:
       EUREKA_URL: http://discovery-service:8761/eureka/
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
       JWT_SECRET: ${JWT_SECRET:-taskflowSecretKeyForJwtTokenGenerationWith256BitsLength}
       DB_HOST: postgres
       DB_NAME: taskflow_user
@@ -101,6 +103,7 @@ services:
         condition: service_healthy
     environment:
       EUREKA_URL: http://discovery-service:8761/eureka/
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
       JWT_SECRET: ${JWT_SECRET:-taskflowSecretKeyForJwtTokenGenerationWith256BitsLength}
       DB_HOST: postgres
       DB_NAME: taskflow_notification
@@ -128,6 +131,7 @@ services:
         condition: service_healthy
     environment:
       EUREKA_URL: http://discovery-service:8761/eureka/
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
       JWT_SECRET: ${JWT_SECRET:-taskflowSecretKeyForJwtTokenGenerationWith256BitsLength}
       DB_HOST: postgres
       DB_NAME: taskflow_task
@@ -162,6 +166,7 @@ services:
         condition: service_healthy
     environment:
       EUREKA_URL: http://discovery-service:8761/eureka/
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173}
     ports:
       - "8080:8080"
