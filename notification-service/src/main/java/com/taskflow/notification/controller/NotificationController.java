@@ -43,11 +43,6 @@ public class NotificationController {
         return service.markAllAsRead(user);
     }
 
-    @PatchMapping("/read-all")
-    public Map<String, Integer> markAllAsRead(@AuthenticationPrincipal AuthenticatedUser user) {
-        return service.markAllAsRead(user);
-    }
-
     @PatchMapping("/{id}/read")
     public NotificationResponse markAsRead(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable Long id) {
         return service.markAsRead(user, id);

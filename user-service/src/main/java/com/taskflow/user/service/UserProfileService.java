@@ -46,10 +46,6 @@ public class UserProfileService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
-    private static String blankToNull(String value) {
-        return value.isBlank() ? null : value.trim();
-    }
-
     private UserProfileResponse toResponse(UserProfile p) {
         return UserProfileResponse.builder()
                 .id(p.getId())

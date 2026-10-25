@@ -33,7 +33,6 @@ public class NotificationService {
     }
 
     @Transactional(readOnly = true)
-    @Transactional(readOnly = true)
     public List<NotificationResponse> listMine(AuthenticatedUser user, boolean onlyUnread) {
         List<Notification> notifications = onlyUnread
                 ? repository.findByUserIdAndReadFalseOrderByCreatedAtDesc(user.userId())
@@ -41,7 +40,6 @@ public class NotificationService {
         return notifications.stream().map(this::toResponse).toList();
     }
 
-    @Transactional(readOnly = true)
     @Transactional(readOnly = true)
     public Map<String, Long> unreadCount(AuthenticatedUser user) {
         return Map.of("unread", repository.countByUserIdAndReadFalse(user.userId()));
@@ -53,11 +51,6 @@ public class NotificationService {
                 .orElseThrow(() -> new ResourceNotFoundException("Notificação não encontrada: " + id));
         notification.setRead(true);
         return toResponse(repository.save(notification));
-    }
-
-    @Transactional
-    public Map<String, Integer> markAllAsRead(AuthenticatedUser user) {
-        return Map.of("updated", repository.markAllAsRead(user.userId()));
     }
 
     @Transactional
