@@ -1,5 +1,6 @@
 package com.taskflow.notification.service;
 
+import com.taskflow.notification.dto.InternalNotificationRequest;
 import com.taskflow.notification.dto.NotificationRequest;
 import com.taskflow.notification.dto.NotificationResponse;
 import com.taskflow.notification.exception.ResourceNotFoundException;
@@ -24,6 +25,19 @@ public class NotificationService {
     public NotificationResponse create(AuthenticatedUser user, NotificationRequest request) {
         Notification notification = Notification.builder()
                 .userId(user.userId())
+                .title(request.getTitle())
+                .message(request.getMessage())
+                .type(request.getType() != null ? request.getType() : NotificationType.INFO)
+                .read(false)
+                .build();
+        return toResponse(repository.save(notification));
+    }
+
+    /** Cria uma notificação para outro usuário (chamada interna entre microsserviços). */
+    @Transactional
+    public NotificationResponse createFor(InternalNotificationRequest request) {
+        Notification notification = Notification.builder()
+                .userId(request.getUserId())
                 .title(request.getTitle())
                 .message(request.getMessage())
                 .type(request.getType() != null ? request.getType() : NotificationType.INFO)

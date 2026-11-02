@@ -1,22 +1,26 @@
 import { useState, type FormEvent } from 'react';
 import { getErrorMessage } from '../api/client';
-import type { Task, TaskInput, TaskPriority, TaskStatus } from '../types';
+import type { Member, Task, TaskInput, TaskPriority, TaskStatus } from '../types';
 import { SelectField, TextArea, TextField } from './Field';
 import { ticketNumber } from '../lib/format';
 import { Modal } from './Modal';
 
 interface Props {
   initial?: Task | null;
+  /** Membros do projeto; vazio/ausente em tarefas pessoais (sem campo de responsável). */
+  members?: Member[];
   onClose: () => void;
   onSave: (input: TaskInput) => Promise<void>;
 }
 
-export function TaskFormModal({ initial, onClose, onSave }: Props) {
+export function TaskFormModal({ initial, members, onClose, onSave }: Props) {
   const [title, setTitle] = useState(initial?.title ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
   const [status, setStatus] = useState<TaskStatus>(initial?.status ?? 'TODO');
   const [priority, setPriority] = useState<TaskPriority>(initial?.priority ?? 'MEDIUM');
   const [dueDate, setDueDate] = useState(initial?.dueDate ?? '');
+  const [assigneeId, setAssigneeId] = useState<string>(initial?.assigneeId ? String(initial.assigneeId) : '');
+  const [labelsText, setLabelsText] = useState((initial?.labels ?? []).join(', '));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -32,6 +36,11 @@ export function TaskFormModal({ initial, onClose, onSave }: Props) {
         status,
         priority,
         dueDate: dueDate || undefined,
+        ...(members ? { assigneeId: assigneeId ? Number(assigneeId) : null } : {}),
+        labels: labelsText
+          .split(',')
+          .map((l) => l.trim())
+          .filter(Boolean),
       });
     } catch (err) {
       setError(getErrorMessage(err, 'Não foi possível salvar a tarefa.'));
@@ -85,6 +94,22 @@ export function TaskFormModal({ initial, onClose, onSave }: Props) {
             type="date"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
+          />
+          {members && (
+            <SelectField label="Responsável" value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)}>
+              <option value="">Sem responsável</option>
+              {members.map((m) => (
+                <option key={m.userId} value={m.userId}>
+                  {m.username}
+                </option>
+              ))}
+            </SelectField>
+          )}
+          <TextField
+            label="Labels"
+            hint="Separe por vírgula (máx. 8, 30 caracteres cada)"
+            value={labelsText}
+            onChange={(e) => setLabelsText(e.target.value)}
           />
           {error && (
             <p role="alert" className="text-sm text-rust-400">

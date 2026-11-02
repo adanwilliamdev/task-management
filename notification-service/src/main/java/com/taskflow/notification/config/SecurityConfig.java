@@ -35,6 +35,8 @@ public class SecurityConfig {
                 .accessDeniedHandler(entryPoint))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
+                // protegida por chave compartilhada no controller (sem JWT: quem chama é outro serviço)
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/notifications/internal").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

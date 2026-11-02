@@ -107,6 +107,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-taskflowSecretKeyForJwtTokenGenerationWith256BitsLength}
       DB_HOST: postgres
       DB_NAME: taskflow_notification
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-taskflow-internal-dev-key}
       DB_USER: ${POSTGRES_USER:-taskflow}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-taskflow123}
     ports:
@@ -138,6 +139,8 @@ services:
       DB_USER: ${POSTGRES_USER:-taskflow}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-taskflow123}
       NOTIFICATIONS_ENABLED: ${NOTIFICATIONS_ENABLED:-true}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-taskflow-internal-dev-key}
+      REMINDERS_ENABLED: ${REMINDERS_ENABLED:-true}
     ports:
       - "8083:8083"
     networks:

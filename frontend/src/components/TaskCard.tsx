@@ -17,6 +17,9 @@ const PRIORITY_STRIPE: Record<TaskPriority, string> = {
 interface Props {
   task: Task;
   dragging: boolean;
+  /** Leitores de projeto não podem alterar nada. */
+  readOnly?: boolean;
+  onDetails: (task: Task) => void;
   onStatusChange: (task: Task, status: TaskStatus) => void;
   onEdit: (task: Task) => void;
   onDelete: (task: Task) => void;
@@ -24,15 +27,27 @@ interface Props {
   onDragEnd: () => void;
 }
 
-export function TaskCard({ task, dragging, onStatusChange, onEdit, onDelete, onDragStart, onDragEnd }: Props) {
+export function TaskCard({
+  task,
+  dragging,
+  readOnly = false,
+  onDetails,
+  onStatusChange,
+  onEdit,
+  onDelete,
+  onDragStart,
+  onDragEnd,
+}: Props) {
   const overdue = isOverdue(task);
 
   return (
     <article
-      draggable
+      draggable={!readOnly}
       onDragStart={(e) => onDragStart(e, task)}
       onDragEnd={onDragEnd}
-      className={`cursor-grab border border-board-700 border-l-4 bg-board-800 p-4 transition-opacity active:cursor-grabbing ${
+      className={`border border-board-700 border-l-4 bg-board-800 p-4 transition-opacity ${
+        readOnly ? '' : 'cursor-grab active:cursor-grabbing'
+      } ${
         PRIORITY_STRIPE[task.priority]
       } ${dragging ? 'opacity-40' : ''}`}
     >
@@ -46,6 +61,21 @@ export function TaskCard({ task, dragging, onStatusChange, onEdit, onDelete, onD
         {task.title}
       </h3>
       {task.description && <p className="mt-1 line-clamp-2 text-sm text-ink-300">{task.description}</p>}
+      {task.labels.length > 0 && (
+        <ul className="mt-2 flex flex-wrap gap-1" aria-label="Labels">
+          {task.labels.map((label) => (
+            <li key={label} className="border border-board-600 px-1.5 py-0.5 font-mono text-[10px] text-steel-300">
+              {label}
+            </li>
+          ))}
+        </ul>
+      )}
+      {task.assigneeUsername && (
+        <p className="mt-2 font-mono text-xs text-ink-300">
+          <span aria-hidden="true">@</span>
+          {task.assigneeUsername}
+        </p>
+      )}
       {task.dueDate && (
         <p className={`mt-2 font-mono text-xs ${overdue ? 'text-rust-300' : 'text-ink-500'}`}>
           {overdue ? 'Atrasada · ' : 'Entrega '}
@@ -56,20 +86,28 @@ export function TaskCard({ task, dragging, onStatusChange, onEdit, onDelete, onD
         <select
           aria-label={`Status da tarefa ${task.title}`}
           value={task.status}
+          disabled={readOnly}
           onChange={(e) => onStatusChange(task, e.target.value as TaskStatus)}
-          className="border border-board-700 bg-board-900 px-2 py-1 text-xs text-ink-100 outline-none focus:border-amber-400"
+          className="border border-board-700 bg-board-900 px-2 py-1 text-xs text-ink-100 outline-none focus:border-amber-400 disabled:opacity-60"
         >
           <option value="TODO">A fazer</option>
           <option value="IN_PROGRESS">Em progresso</option>
           <option value="DONE">Concluída</option>
         </select>
         <div className="flex gap-3 text-xs">
-          <button type="button" onClick={() => onEdit(task)} className="text-steel-300 hover:underline">
-            Editar
+          <button type="button" onClick={() => onDetails(task)} className="text-ink-300 hover:underline">
+            Detalhes
           </button>
-          <button type="button" onClick={() => onDelete(task)} className="text-rust-400 hover:underline">
-            Excluir
-          </button>
+          {!readOnly && (
+            <>
+              <button type="button" onClick={() => onEdit(task)} className="text-steel-300 hover:underline">
+                Editar
+              </button>
+              <button type="button" onClick={() => onDelete(task)} className="text-rust-400 hover:underline">
+                Excluir
+              </button>
+            </>
+          )}
         </div>
       </div>
     </article>

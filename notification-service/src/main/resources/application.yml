@@ -27,6 +27,8 @@ eureka:
 app:
   jwt:
     secret: ${JWT_SECRET:taskflowSecretKeyForJwtTokenGenerationWith256BitsLength}
+  internal:
+    key: ${INTERNAL_API_KEY:taskflow-internal-dev-key}
 
 management:
   endpoints:

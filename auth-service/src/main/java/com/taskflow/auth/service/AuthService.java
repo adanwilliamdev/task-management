@@ -3,8 +3,10 @@ package com.taskflow.auth.service;
 import com.taskflow.auth.dto.AuthResponse;
 import com.taskflow.auth.dto.LoginRequest;
 import com.taskflow.auth.dto.RegisterRequest;
+import com.taskflow.auth.dto.UserLookupResponse;
 import com.taskflow.auth.dto.UserResponse;
 import com.taskflow.auth.exception.ConflictException;
+import com.taskflow.auth.exception.ResourceNotFoundException;
 import com.taskflow.auth.exception.UnauthorizedException;
 import com.taskflow.auth.model.Role;
 import com.taskflow.auth.model.User;
@@ -77,6 +79,14 @@ public class AuthService {
                 .enabled(user.isEnabled())
                 .createdAt(user.getCreatedAt())
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public UserLookupResponse lookupByUsername(String username) {
+        User user = userRepository.findByUsername(username.trim())
+                .filter(User::isEnabled)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+        return new UserLookupResponse(user.getId(), user.getUsername());
     }
 
     private AuthResponse toAuthResponse(User user) {

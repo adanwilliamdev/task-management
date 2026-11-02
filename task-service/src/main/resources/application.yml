@@ -31,6 +31,14 @@ app:
   notifications:
     enabled: ${NOTIFICATIONS_ENABLED:true}
     service-id: ${NOTIFICATION_SERVICE_ID:NOTIFICATION-SERVICE}
+    internal-key: ${INTERNAL_API_KEY:taskflow-internal-dev-key}
+
+  auth:
+    service-id: ${AUTH_SERVICE_ID:AUTH-SERVICE}
+
+  reminders:
+    enabled: ${REMINDERS_ENABLED:true}
+    interval-ms: ${REMINDERS_INTERVAL_MS:3600000}
 
 management:
   endpoints:

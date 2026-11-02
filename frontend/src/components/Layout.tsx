@@ -30,6 +30,7 @@ export function Layout({ children }: { children: ReactNode }) {
 
   const navItems = [
     { to: '/tasks', label: 'Tarefas', badge: undefined as number | undefined },
+    { to: '/projects', label: 'Projetos', badge: undefined as number | undefined },
     { to: '/notifications', label: 'Notificações', badge: unread > 0 ? unread : undefined },
     { to: '/profile', label: 'Perfil', badge: undefined as number | undefined },
   ];

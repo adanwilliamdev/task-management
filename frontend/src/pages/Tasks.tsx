@@ -1,15 +1,20 @@
 import { useCallback, useEffect, useMemo, useState, type DragEvent } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Layout } from '../components/Layout';
+import { MembersModal } from '../components/MembersModal';
+import { TaskDetailModal } from '../components/TaskDetailModal';
 import { TaskFormModal } from '../components/TaskFormModal';
 import { TaskCard } from '../components/TaskCard';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { fieldClass } from '../components/Field';
 import { useToast } from '../components/Toast';
 import * as tasksApi from '../api/tasks';
+import * as projectsApi from '../api/projects';
+import { atLeast } from '../lib/roles';
 import { announceNotificationsChanged } from '../api/notifications';
 import { getErrorMessage } from '../api/client';
 import { isOverdue } from '../lib/format';
-import type { Task, TaskInput, TaskPriority, TaskStatus } from '../types';
+import type { Member, Project, Task, TaskInput, TaskPriority, TaskStatus } from '../types';
 
 const COLUMNS: { status: TaskStatus; label: string; accent: string }[] = [
   { status: 'TODO', label: 'A fazer', accent: 'border-steel-400' },
@@ -35,8 +40,19 @@ function refreshNotificationsSoon() {
   window.setTimeout(announceNotificationsChanged, 1500);
 }
 
-export default function Tasks() {
+interface Props {
+  /** Sem projectId: painel de tarefas pessoais. */
+  projectId?: number;
+}
+
+export default function Tasks({ projectId }: Props) {
   const toast = useToast();
+  const navigate = useNavigate();
+  const [project, setProject] = useState<Project | null>(null);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [membersOpen, setMembersOpen] = useState(false);
+  const [detail, setDetail] = useState<Task | null>(null);
+  const [labelFilter, setLabelFilter] = useState('ALL');
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -53,28 +69,45 @@ export default function Tasks() {
     setLoading(true);
     setError('');
     try {
-      setTasks(await tasksApi.listTasks());
+      setTasks(await tasksApi.listTasks({ projectId }));
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [projectId]);
+
+  const loadProject = useCallback(async () => {
+    if (projectId === undefined) return;
+    try {
+      const [p, m] = await Promise.all([projectsApi.getProject(projectId), projectsApi.listMembers(projectId)]);
+      setProject(p);
+      setMembers(m);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  }, [projectId]);
 
   useEffect(() => {
     void load();
-  }, [load]);
+    void loadProject();
+  }, [load, loadProject]);
 
-  const filtering = search.trim() !== '' || priorityFilter !== 'ALL';
+  const canWrite = projectId === undefined || atLeast(project?.myRole, 'EDITOR');
+  const isOwner = project?.myRole === 'OWNER';
+  const allLabels = useMemo(() => [...new Set(tasks.flatMap((t) => t.labels))].sort(), [tasks]);
+
+  const filtering = search.trim() !== '' || priorityFilter !== 'ALL' || labelFilter !== 'ALL';
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
     return tasks.filter(
       (t) =>
         (priorityFilter === 'ALL' || t.priority === priorityFilter) &&
+        (labelFilter === 'ALL' || t.labels.includes(labelFilter)) &&
         (!q || t.title.toLowerCase().includes(q) || (t.description ?? '').toLowerCase().includes(q))
     );
-  }, [tasks, search, priorityFilter]);
+  }, [tasks, search, priorityFilter, labelFilter]);
 
   const columns = useMemo(
     () =>
@@ -119,7 +152,7 @@ export default function Tasks() {
       toast.success('Tarefa atualizada.');
       if (editing.status !== 'DONE' && updated.status === 'DONE') refreshNotificationsSoon();
     } else {
-      const created = await tasksApi.createTask(input);
+      const created = await tasksApi.createTask({ ...input, projectId });
       setTasks((cur) => [created, ...cur]);
       toast.success('Tarefa criada.');
       refreshNotificationsSoon();
@@ -161,6 +194,10 @@ export default function Tasks() {
   }
 
   function handleDragStart(e: DragEvent<HTMLElement>, task: Task) {
+    if (!canWrite) {
+      e.preventDefault();
+      return;
+    }
     e.dataTransfer.setData('text/plain', String(task.id));
     e.dataTransfer.effectAllowed = 'move';
     setDraggingId(task.id);
@@ -181,20 +218,49 @@ export default function Tasks() {
   function clearFilters() {
     setSearch('');
     setPriorityFilter('ALL');
+    setLabelFilter('ALL');
   }
 
   return (
     <Layout>
       <div className="mb-6 flex items-center justify-between gap-4">
-        <h1 className="font-display text-3xl tracking-wide uppercase">Painel de tarefas</h1>
-        <button
-          type="button"
-          onClick={openCreate}
-          className="bg-amber-400 px-4 py-2 font-medium text-board-950 transition-colors hover:bg-amber-300"
-        >
-          + Nova tarefa
-        </button>
+        <div>
+          {projectId !== undefined && (
+            <Link to="/projects" className="font-mono text-xs text-ink-500 hover:text-ink-300">
+              ← Projetos
+            </Link>
+          )}
+          <h1 className="font-display text-3xl tracking-wide uppercase">
+            {projectId !== undefined ? (project?.name ?? 'Projeto') : 'Painel de tarefas'}
+          </h1>
+          {project?.description && <p className="text-sm text-ink-300">{project.description}</p>}
+        </div>
+        <div className="flex items-center gap-3">
+          {projectId !== undefined && (
+            <button
+              type="button"
+              onClick={() => setMembersOpen(true)}
+              className="border border-board-600 px-3 py-2 text-sm text-ink-100 transition-colors hover:border-amber-400"
+            >
+              Membros ({project?.memberCount ?? members.length})
+            </button>
+          )}
+          {canWrite && (
+            <button
+              type="button"
+              onClick={openCreate}
+              className="bg-amber-400 px-4 py-2 font-medium text-board-950 transition-colors hover:bg-amber-300"
+            >
+              + Nova tarefa
+            </button>
+          )}
+        </div>
       </div>
+      {projectId !== undefined && project && !canWrite && (
+        <p className="mb-4 border border-board-700 bg-board-900 px-3 py-2 text-sm text-ink-300">
+          Você é <strong>Leitor</strong> neste projeto: pode ver tarefas e histórico, mas não alterar.
+        </p>
+      )}
 
       {error && (
         <div
@@ -259,6 +325,21 @@ export default function Tasks() {
               <option value="MEDIUM">Média</option>
               <option value="LOW">Baixa</option>
             </select>
+            {allLabels.length > 0 && (
+              <select
+                aria-label="Filtrar por label"
+                value={labelFilter}
+                onChange={(e) => setLabelFilter(e.target.value)}
+                className="border border-board-700 bg-board-900 px-3 py-2 text-ink-100 outline-none focus:border-amber-400"
+              >
+                <option value="ALL">Todas as labels</option>
+                {allLabels.map((l) => (
+                  <option key={l} value={l}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+            )}
             {filtering && (
               <button type="button" onClick={clearFilters} className="text-sm text-steel-300 hover:underline">
                 Limpar filtros
@@ -286,13 +367,15 @@ export default function Tasks() {
         <div className="border border-dashed border-board-700 px-4 py-16 text-center">
           <p className="font-display text-xl tracking-wide uppercase">Nenhuma tarefa ainda</p>
           <p className="mt-1 text-sm text-ink-500">Crie a primeira tarefa para começar a organizar seu painel.</p>
-          <button
-            type="button"
-            onClick={openCreate}
-            className="mt-5 bg-amber-400 px-4 py-2 font-medium text-board-950 transition-colors hover:bg-amber-300"
-          >
-            + Nova tarefa
-          </button>
+          {canWrite && (
+            <button
+              type="button"
+              onClick={openCreate}
+              className="mt-5 bg-amber-400 px-4 py-2 font-medium text-board-950 transition-colors hover:bg-amber-300"
+            >
+              + Nova tarefa
+            </button>
+          )}
         </div>
       ) : (
         <>
@@ -333,6 +416,8 @@ export default function Tasks() {
                         key={task.id}
                         task={task}
                         dragging={draggingId === task.id}
+                        readOnly={!canWrite}
+                        onDetails={setDetail}
                         onStatusChange={(t, status) => void changeStatus(t, status)}
                         onEdit={openEdit}
                         onDelete={setDeleting}
@@ -348,7 +433,36 @@ export default function Tasks() {
         </>
       )}
 
-      {modalOpen && <TaskFormModal initial={editing} onClose={closeModal} onSave={handleSave} />}
+      {modalOpen && (
+        <TaskFormModal
+          initial={editing}
+          members={projectId !== undefined ? members : undefined}
+          onClose={closeModal}
+          onSave={handleSave}
+        />
+      )}
+
+      {detail && (
+        <TaskDetailModal
+          task={detail}
+          canComment={canWrite}
+          isProjectOwner={isOwner}
+          onClose={() => setDetail(null)}
+        />
+      )}
+
+      {membersOpen && projectId !== undefined && (
+        <MembersModal
+          projectId={projectId}
+          isOwner={isOwner}
+          onClose={() => setMembersOpen(false)}
+          onChanged={() => {
+            void loadProject();
+            void load();
+          }}
+          onLeft={() => navigate('/projects')}
+        />
+      )}
 
       {deleting && (
         <ConfirmDialog

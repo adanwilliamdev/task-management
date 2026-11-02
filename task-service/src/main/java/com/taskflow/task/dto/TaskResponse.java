@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -23,6 +24,10 @@ public class TaskResponse {
     private LocalDate dueDate;
     private boolean overdue;
     private Long userId;
+    private Long projectId;
+    private Long assigneeId;
+    private String assigneeUsername;
+    private List<String> labels;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

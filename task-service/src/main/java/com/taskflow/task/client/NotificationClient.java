@@ -25,6 +25,7 @@ public class NotificationClient {
     private final RestTemplate restTemplate;
     private final boolean enabled;
     private final String serviceId;
+    private final String internalKey;
     private final ExecutorService executor = Executors.newFixedThreadPool(2, runnable -> {
         Thread thread = new Thread(runnable, "notification-client");
         thread.setDaemon(true);
@@ -33,10 +34,12 @@ public class NotificationClient {
 
     public NotificationClient(RestTemplate restTemplate,
                               @Value("${app.notifications.enabled:true}") boolean enabled,
-                              @Value("${app.notifications.service-id:NOTIFICATION-SERVICE}") String serviceId) {
+                              @Value("${app.notifications.service-id:NOTIFICATION-SERVICE}") String serviceId,
+                              @Value("${app.notifications.internal-key:}") String internalKey) {
         this.restTemplate = restTemplate;
         this.enabled = enabled;
         this.serviceId = serviceId;
+        this.internalKey = internalKey;
     }
 
     public void send(String bearerToken, String type, String title, String message) {
@@ -56,6 +59,32 @@ public class NotificationClient {
                         new HttpEntity<>(body, headers), Void.class);
             } catch (Exception e) {
                 log.warn("Não foi possível enviar notificação ({}): {}", type, e.getMessage());
+            }
+        });
+    }
+
+    /**
+     * Notifica outro usuário (responsável pela tarefa, membro convidado, etc.).
+     * Usa a chave interna compartilhada, pois o token de quem agiu não vale para o destinatário.
+     */
+    public void sendTo(Long userId, String type, String title, String message) {
+        if (!enabled || userId == null || internalKey == null || internalKey.isBlank()) {
+            return;
+        }
+        executor.execute(() -> {
+            try {
+                HttpHeaders headers = new HttpHeaders();
+                headers.set("X-Internal-Key", internalKey);
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                Map<String, Object> body = Map.of(
+                        "userId", userId,
+                        "title", truncate(title, 140),
+                        "message", truncate(message, 900),
+                        "type", type);
+                restTemplate.postForEntity("http://" + serviceId + "/api/notifications/internal",
+                        new HttpEntity<>(body, headers), Void.class);
+            } catch (Exception e) {
+                log.warn("Não foi possível notificar o usuário {} ({}): {}", userId, type, e.getMessage());
             }
         });
     }

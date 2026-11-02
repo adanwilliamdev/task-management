@@ -136,6 +136,11 @@ Não existe uma chamada de rede entre os microsserviços para validar o JWT.
 * Tarefas isoladas por usuário
 * Gerenciamento de notificações (geradas automaticamente ao criar/concluir tarefas)
 * Busca e filtro de tarefas, quadro com arrastar e soltar
+* **Projetos colaborativos** com membros e papéis (Dono, Editor, Leitor)
+* **Atribuição de tarefas** a membros do projeto, com notificação ao responsável
+* **Labels** nas tarefas, com filtro no quadro
+* **Comentários** e **histórico de atividade** por tarefa
+* **Lembretes de prazo** automáticos (vence hoje/amanhã ou atrasada)
 * Service Discovery com Eureka
 * API Gateway centralizado
 * PostgreSQL separado por serviço
@@ -149,6 +154,7 @@ Não existe uma chamada de rede entre os microsserviços para validar o JWT.
 POST /api/auth/register
 POST /api/auth/login
 GET  /api/auth/me          (requer token)
+GET  /api/auth/users/lookup?username=   # resolve username → id (usado ao convidar membros)
 ```
 
 ### Usuários
@@ -161,14 +167,41 @@ PUT /api/users/me
 ### Tarefas
 
 ```http
-GET    /api/tasks?status=&priority=&q=   # filtros opcionais, mais recentes primeiro
-GET    /api/tasks/stats                  # totais por status e atrasadas
+GET    /api/tasks?projectId=&status=&priority=&q=&label=&assigneeId=
+                                         # sem projectId: tarefas pessoais; com projectId: tarefas do projeto
+GET    /api/tasks/stats?projectId=       # totais por status e atrasadas
 GET    /api/tasks/{id}
 POST   /api/tasks
 PUT    /api/tasks/{id}
 PATCH  /api/tasks/{id}/status
 DELETE /api/tasks/{id}
+GET    /api/tasks/{id}/comments
+POST   /api/tasks/{id}/comments
+DELETE /api/tasks/{id}/comments/{commentId}
+GET    /api/tasks/{id}/activity          # histórico (últimos 50 eventos)
 ```
+
+### Projetos
+
+```http
+GET    /api/projects                     # projetos dos quais sou membro (com meu papel)
+POST   /api/projects
+GET    /api/projects/{id}
+PUT    /api/projects/{id}                # Dono
+DELETE /api/projects/{id}                # Dono (apaga tarefas, comentários e histórico)
+GET    /api/projects/{id}/members
+POST   /api/projects/{id}/members        # Dono: { "username": "...", "role": "EDITOR|VIEWER" }
+PATCH  /api/projects/{id}/members/{userId}   # Dono: { "role": "EDITOR|VIEWER" }
+DELETE /api/projects/{id}/members/{userId}   # Dono remove qualquer um; membro pode sair
+```
+
+| Papel  | Ver tarefas/comentários | Criar/editar/comentar | Excluir tarefa       | Gerir projeto e membros |
+| ------ | :---------------------: | :-------------------: | -------------------- | :---------------------: |
+| Leitor |           ✅            |          ❌           | ❌                   |           ❌            |
+| Editor |           ✅            |          ✅           | só as que criou      |           ❌            |
+| Dono   |           ✅            |          ✅           | qualquer uma         |           ✅            |
+
+Quem não é membro recebe **404** (o projeto não revela existir); membro sem permissão recebe **403**.
 
 ### Notificações
 
@@ -195,6 +228,21 @@ Ao criar uma tarefa ou concluí-la, o `task-service` chama o `notification-servi
 (via Eureka, repassando o JWT do usuário) depois do commit e em segundo plano.
 Se o notification-service estiver fora do ar, a operação da tarefa não é afetada:
 a falha só aparece no log. Para desligar: `NOTIFICATIONS_ENABLED=false`.
+
+## ⏰ Lembretes e notificações entre usuários
+
+Quando uma tarefa é atribuída a outra pessoa, um comentário é feito ou alguém é adicionado a um projeto,
+o `task-service` notifica o destinatário pelo endpoint **interno** `POST /api/notifications/internal`
+do `notification-service`. Esse endpoint é protegido por uma chave compartilhada (`INTERNAL_API_KEY`,
+header `X-Internal-Key`) e o API Gateway o bloqueia para o tráfego externo (responde 404).
+**Troque a chave em produção.**
+
+Um agendador no `task-service` roda a cada hora (`REMINDERS_INTERVAL_MS`) e avisa o responsável
+(ou o criador) de tarefas que vencem até amanhã ou estão atrasadas, uma única vez por data de entrega.
+Para desligar: `REMINDERS_ENABLED=false`.
+
+> Nota: com várias instâncias do `task-service`, o agendador pode duplicar lembretes;
+> para escalar, use um lock distribuído (ex.: ShedLock).
 
 ## ⚙️ Configuração
 

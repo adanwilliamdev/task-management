@@ -18,6 +18,47 @@ export interface CurrentUser {
   role: string;
 }
 
+export type ProjectRole = 'VIEWER' | 'EDITOR' | 'OWNER';
+
+export interface Project {
+  id: number;
+  name: string;
+  description?: string;
+  ownerId: number;
+  myRole: ProjectRole;
+  memberCount: number;
+  createdAt: string;
+}
+
+export interface ProjectInput {
+  name: string;
+  description?: string;
+}
+
+export interface Member {
+  userId: number;
+  username: string;
+  role: ProjectRole;
+  joinedAt: string;
+}
+
+export interface TaskComment {
+  id: number;
+  taskId: number;
+  authorId: number;
+  authorName: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface TaskActivity {
+  id: number;
+  action: string;
+  actorName: string;
+  details?: string;
+  createdAt: string;
+}
+
 export interface Task {
   id: number;
   title: string;
@@ -27,6 +68,10 @@ export interface Task {
   dueDate?: string;
   overdue: boolean;
   userId: number;
+  projectId?: number | null;
+  assigneeId?: number | null;
+  assigneeUsername?: string | null;
+  labels: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -37,6 +82,10 @@ export interface TaskInput {
   status?: TaskStatus;
   priority?: TaskPriority;
   dueDate?: string;
+  projectId?: number;
+  /** null remove o responsável ao editar */
+  assigneeId?: number | null;
+  labels?: string[];
 }
 
 export interface UserProfile {

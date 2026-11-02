@@ -4,6 +4,13 @@ spring:
   cloud:
     gateway:
       routes:
+        # Endpoint de uso interno entre serviços: nunca exposto ao tráfego externo.
+        - id: block-internal-notifications
+          uri: no://op
+          predicates:
+            - Path=/api/notifications/internal/**
+          filters:
+            - SetStatus=404
         - id: auth-service
           uri: lb://AUTH-SERVICE
           predicates:
@@ -15,7 +22,7 @@ spring:
         - id: task-service
           uri: lb://TASK-SERVICE
           predicates:
-            - Path=/api/tasks/**
+            - Path=/api/tasks/**, /api/projects/**
         - id: notification-service
           uri: lb://NOTIFICATION-SERVICE
           predicates:

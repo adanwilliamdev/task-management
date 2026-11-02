@@ -5,6 +5,8 @@ import { ToastProvider } from './components/Toast';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Tasks from './pages/Tasks';
+import Projects from './pages/Projects';
+import ProjectBoard from './pages/ProjectBoard';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
 
@@ -35,6 +37,22 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <Tasks />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/projects"
+              element={
+                <ProtectedRoute>
+                  <Projects />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/projects/:projectId"
+              element={
+                <ProtectedRoute>
+                  <ProjectBoard />
                 </ProtectedRoute>
               }
             />

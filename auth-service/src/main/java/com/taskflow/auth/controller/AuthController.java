@@ -31,4 +31,9 @@ public class AuthController {
     public ResponseEntity<UserResponse> me(@AuthenticationPrincipal AuthenticatedUser user) {
         return ResponseEntity.ok(authService.getCurrentUser(user.username()));
     }
+
+    @GetMapping("/users/lookup")
+    public ResponseEntity<UserLookupResponse> lookup(@RequestParam String username) {
+        return ResponseEntity.ok(authService.lookupByUsername(username));
+    }
 }

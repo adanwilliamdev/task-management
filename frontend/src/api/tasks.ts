@@ -1,10 +1,12 @@
 import { api } from './client';
-import type { Task, TaskInput, TaskPriority, TaskStatus } from '../types';
+import type { Task, TaskActivity, TaskComment, TaskInput, TaskPriority, TaskStatus } from '../types';
 
 export interface TaskQuery {
   status?: TaskStatus;
   priority?: TaskPriority;
   q?: string;
+  projectId?: number;
+  label?: string;
 }
 
 export function listTasks(query: TaskQuery = {}) {
@@ -29,4 +31,20 @@ export function updateTaskStatus(id: number, status: TaskStatus) {
 
 export function deleteTask(id: number) {
   return api.delete(`/tasks/${id}`);
+}
+
+export function listComments(taskId: number) {
+  return api.get<TaskComment[]>(`/tasks/${taskId}/comments`).then((r) => r.data);
+}
+
+export function addComment(taskId: number, content: string) {
+  return api.post<TaskComment>(`/tasks/${taskId}/comments`, { content }).then((r) => r.data);
+}
+
+export function deleteComment(taskId: number, commentId: number) {
+  return api.delete(`/tasks/${taskId}/comments/${commentId}`);
+}
+
+export function listActivity(taskId: number) {
+  return api.get<TaskActivity[]>(`/tasks/${taskId}/activity`).then((r) => r.data);
 }
